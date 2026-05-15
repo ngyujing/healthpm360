@@ -34,6 +34,12 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
 .lb h1{font-size:1.2rem;font-weight:800;color:var(--navy)}
 .lb p{font-size:.65rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-top:1px}
 .le{background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;color:var(--red);padding:9px 12px;font-size:.78rem;margin-bottom:11px;display:none}
+.ls-ok{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:6px;color:var(--green);padding:9px 12px;font-size:.78rem;margin-bottom:11px;display:none}
+.auth-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border)}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:.8rem;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.auth-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.auth-panel{display:none}.auth-panel.active{display:block}
+.pw-hint{font-size:.68rem;color:var(--text3);margin-top:3px}
 .fg{margin-bottom:13px}
 .fg label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:4px;letter-spacing:.03em}
 .fg label .req{color:var(--red);margin-left:2px}
@@ -169,24 +175,60 @@ tr:hover td{background:#FAFBFD}
 <body>
 
 <div id="ls">
-<div class="lc">
+<div class="lc" style="width:440px">
   <div class="lb">
     <div class="logo"><svg width="19" height="19" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
     <div><h1>HealthPM360</h1><p>Healthcare Project Governance</p></div>
   </div>
-  <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:3px">Welcome back</h2>
-  <p style="color:var(--text2);font-size:.8rem;margin-bottom:24px">Sign in to your project workspace</p>
-  <div id="le" class="le"></div>
-  <div class="fg"><label>Email <span class="req">*</span></label><input type="email" id="li-e" placeholder="you@organisation.sg" autocomplete="email"></div>
-  <div class="fg"><label>Password <span class="req">*</span></label><input type="password" id="li-p" placeholder="Password" autocomplete="current-password"></div>
-  <button class="btn btn-primary btn-full" id="li-btn" onclick="doLogin()">
-    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-    Sign In
-  </button>
-  <p style="margin-top:11px;font-size:.68rem;color:var(--text3);text-align:center">
-    Singapore Healthcare System Integrator · Secure Platform<br>
-    <span style="color:var(--amber)">⚠</span> Authorised users only. All access is audited.
-  </p>
+  <div class="auth-tabs">
+    <div class="auth-tab active" id="tab-in" onclick="switchAuthTab('in')">Sign In</div>
+    <div class="auth-tab" id="tab-up" onclick="switchAuthTab('up')">Create Account</div>
+  </div>
+  <div class="auth-panel active" id="panel-in">
+    <div id="le" class="le"></div>
+    <div class="fg"><label>Email <span class="req">*</span></label><input type="email" id="li-e" placeholder="you@organisation.sg" autocomplete="email"></div>
+    <div class="fg"><label>Password <span class="req">*</span></label><input type="password" id="li-p" placeholder="Password" autocomplete="current-password"></div>
+    <button class="btn btn-primary btn-full" id="li-btn" onclick="doLogin()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+      Sign In
+    </button>
+    <p style="margin-top:11px;font-size:.68rem;color:var(--text3);text-align:center">
+      Singapore Healthcare System Integrator · Secure Platform<br>
+      <span style="color:var(--amber)">&#9888;</span> Authorised users only. All access is audited.
+    </p>
+  </div>
+  <div class="auth-panel" id="panel-up">
+    <div id="sue" class="le"></div>
+    <div id="suk" class="ls-ok"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+      <div class="fg"><label>Full Name <span class="req">*</span></label><input id="su-n" placeholder="e.g. Sarah Lim" autocomplete="name"></div>
+      <div class="fg"><label>Role <span class="req">*</span></label>
+        <select id="su-r">
+          <option value="project_manager">Project Manager</option>
+          <option value="pmo">PMO</option>
+          <option value="project_sponsor">Project Sponsor</option>
+          <option value="steering_committee">Steering Committee</option>
+          <option value="finance">Finance / Procurement</option>
+          <option value="qa_compliance">QA / Compliance</option>
+          <option value="vendor">Vendor / External</option>
+        </select>
+      </div>
+      <div class="fg" style="grid-column:1/-1"><label>Email Address <span class="req">*</span></label><input type="email" id="su-e" placeholder="you@organisation.sg" autocomplete="email"></div>
+      <div class="fg"><label>Department</label><input id="su-d" placeholder="e.g. IT Delivery"></div>
+      <div class="fg"><label>Organisation</label><input id="su-o" placeholder="e.g. HealthSI Pte Ltd"></div>
+      <div class="fg"><label>Password <span class="req">*</span></label><input type="password" id="su-p" placeholder="Min. 8 characters" autocomplete="new-password"></div>
+      <div class="fg"><label>Confirm Password <span class="req">*</span></label><input type="password" id="su-p2" placeholder="Repeat password" autocomplete="new-password"></div>
+    </div>
+    <div class="pw-hint" style="margin-top:-7px;margin-bottom:13px">Password must be at least 8 characters</div>
+    <button class="btn btn-primary btn-full" id="su-btn" onclick="doSignup()">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Create Account
+    </button>
+    <p style="margin-top:11px;font-size:.68rem;color:var(--text3);text-align:center">
+      All account data is stored securely in Appwrite.<br>
+      Your profile is saved and accessible on every login.
+    </p>
+  </div>
 </div>
 </div>
 
@@ -314,6 +356,15 @@ async function auditLog(action,entityType,entityId,description,projectId){
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────
+function switchAuthTab(tab){
+  ['in','up'].forEach(t=>{
+    $(`tab-${t}`).classList.toggle('active',t===tab);
+    $(`panel-${t}`).classList.toggle('active',t===tab);
+  });
+  // clear errors when switching
+  ['le','sue','suk'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
+}
+
 async function doLogin(){
   const email=$('li-e').value.trim(),pass=$('li-p').value;
   const err=$('le'),btn=$('li-btn');
@@ -327,6 +378,56 @@ async function doLogin(){
     err.style.display='block';btn.disabled=false;btn.textContent='Sign In';
   }
 }
+
+async function doSignup(){
+  const v=id=>$(id)?.value?.trim();
+  const err=$('sue'),ok=$('suk'),btn=$('su-btn');
+  err.style.display='none';ok.style.display='none';
+
+  // Validation
+  const name=v('su-n'),email=v('su-e'),role=v('su-r'),pass=$('su-p').value,pass2=$('su-p2').value;
+  const dept=v('su-d'),org=v('su-o');
+  if(!name||!email||!pass){err.textContent='Full name, email and password are required.';err.style.display='block';return;}
+  if(pass.length<8){err.textContent='Password must be at least 8 characters.';err.style.display='block';return;}
+  if(pass!==pass2){err.textContent='Passwords do not match.';err.style.display='block';return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Please enter a valid email address.';err.style.display='block';return;}
+
+  btn.disabled=true;btn.textContent='Creating account…';
+  try{
+    // 1. Create Appwrite auth account
+    const newUser=await account.create(ID.unique(),email,pass,name);
+
+    // 2. Log them in immediately
+    await account.createEmailPasswordSession(email,pass);
+
+    // 3. Store full profile in Appwrite Database (profiles collection)
+    await createDoc('profiles',{
+      userId:      newUser.$id,
+      full_name:   name,
+      email:       email,
+      role:        role,
+      department:  dept,
+      organisation:org,
+      is_active:   true
+    });
+
+    // 4. Log the signup event
+    await auditLog('SIGNUP','profiles',newUser.$id,`New account created: ${name} (${role})`);
+
+    // 5. Show success briefly then boot into the app
+    ok.textContent='Account created! Signing you in…';ok.style.display='block';
+    setTimeout(async()=>{ await boot(); },800);
+
+  }catch(e){
+    // Handle common errors with friendly messages
+    let msg=e.message;
+    if(e.code===409||msg.toLowerCase().includes('already'))msg='An account with this email already exists. Try signing in instead.';
+    if(msg.toLowerCase().includes('password'))msg='Password must be at least 8 characters long.';
+    err.textContent=msg;err.style.display='block';
+    btn.disabled=false;btn.textContent='Create Account';
+  }
+}
+
 async function doLogout(){try{await account.deleteSession('current');}catch{}S.user=null;S.profile=null;$('ls').style.display='flex';$('app').classList.remove('on');}
 
 async function boot(){
@@ -1316,6 +1417,7 @@ function ft(val,tbodyId){
 // BOOT
 (async()=>{
   ['li-e','li-p'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});});
+  ['su-n','su-e','su-d','su-o','su-p','su-p2'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});});
   await boot();
 })();
 </script>
