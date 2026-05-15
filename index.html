@@ -203,19 +203,9 @@ tr:hover td{background:#FAFBFD}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
       <div class="fg"><label>Full Name <span class="req">*</span></label><input id="su-n" placeholder="e.g. Sarah Lim" autocomplete="name"></div>
       <div class="fg"><label>Role <span class="req">*</span></label>
-        <select id="su-r">
-          <option value="project_manager">Project Manager</option>
-          <option value="pmo">PMO</option>
-          <option value="project_sponsor">Project Sponsor</option>
-          <option value="steering_committee">Steering Committee</option>
-          <option value="finance">Finance / Procurement</option>
-          <option value="qa_compliance">QA / Compliance</option>
-          <option value="vendor">Vendor / External</option>
-        </select>
+        <select id="su-r"><option value="">Loading roles…</option></select>
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Email Address <span class="req">*</span></label><input type="email" id="su-e" placeholder="you@organisation.sg" autocomplete="email"></div>
-      <div class="fg"><label>Department</label><input id="su-d" placeholder="e.g. IT Delivery"></div>
-      <div class="fg"><label>Organisation</label><input id="su-o" placeholder="e.g. HealthSI Pte Ltd"></div>
       <div class="fg"><label>Password <span class="req">*</span></label><input type="password" id="su-p" placeholder="Min. 8 characters" autocomplete="new-password"></div>
       <div class="fg"><label>Confirm Password <span class="req">*</span></label><input type="password" id="su-p2" placeholder="Repeat password" autocomplete="new-password"></div>
     </div>
@@ -229,6 +219,7 @@ tr:hover td{background:#FAFBFD}
       Your profile is saved and accessible on every login.
     </p>
   </div>
+
 </div>
 </div>
 
@@ -297,7 +288,7 @@ const client  = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
 const account = new Account(client);
 const db      = new Databases(client);
 
-const S = { user:null, profile:null, view:'dashboard', proj:null, ptab:'overview' };
+const S = { user:null, profile:null, view:'dashboard', proj:null, ptab:'overview', roles:[] };
 const genId = pre => `${pre}-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
 
 const $    = id => document.getElementById(id);
@@ -361,8 +352,25 @@ function switchAuthTab(tab){
     $(`tab-${t}`).classList.toggle('active',t===tab);
     $(`panel-${t}`).classList.toggle('active',t===tab);
   });
-  // clear errors when switching
   ['le','sue','suk'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
+  if(tab==='up') loadSignupRoles();
+}
+
+async function loadSignupRoles(){
+  const sel=$('su-r');if(!sel)return;
+  try{
+    const {documents:roles}=await listDocs('app_roles',[Query.equal('is_active',true),Query.orderAsc('sort_order')]);
+    S.roles=roles;
+    sel.innerHTML=roles.map(r=>`<option value="${esc(r.key)}">${esc(r.label)}</option>`).join('');
+    if(!roles.length) sel.innerHTML='<option value="">No roles available</option>';
+  }catch{
+    // fallback to hardcoded if collection doesn't exist yet
+    sel.innerHTML=`<option value="project_manager">Project Manager</option>
+      <option value="pmo">PMO</option><option value="project_sponsor">Project Sponsor</option>
+      <option value="steering_committee">Steering Committee</option>
+      <option value="finance">Finance</option><option value="qa_compliance">QA / Compliance</option>
+      <option value="vendor">Vendor / External</option>`;
+  }
 }
 
 async function doLogin(){
@@ -384,42 +392,32 @@ async function doSignup(){
   const err=$('sue'),ok=$('suk'),btn=$('su-btn');
   err.style.display='none';ok.style.display='none';
 
-  // Validation
   const name=v('su-n'),email=v('su-e'),role=v('su-r'),pass=$('su-p').value,pass2=$('su-p2').value;
-  const dept=v('su-d'),org=v('su-o');
-  if(!name||!email||!pass){err.textContent='Full name, email and password are required.';err.style.display='block';return;}
+  if(!name||!email||!role||!pass){err.textContent='All fields are required.';err.style.display='block';return;}
   if(pass.length<8){err.textContent='Password must be at least 8 characters.';err.style.display='block';return;}
   if(pass!==pass2){err.textContent='Passwords do not match.';err.style.display='block';return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent='Please enter a valid email address.';err.style.display='block';return;}
 
   btn.disabled=true;btn.textContent='Creating account…';
   try{
-    // 1. Create Appwrite auth account
+    // 1. Create Appwrite auth user
     const newUser=await account.create(ID.unique(),email,pass,name);
-
-    // 2. Log them in immediately
+    // 2. Auto-login
     await account.createEmailPasswordSession(email,pass);
-
-    // 3. Store full profile in Appwrite Database (profiles collection)
+    // 3. Store profile in Appwrite Database
     await createDoc('profiles',{
-      userId:      newUser.$id,
-      full_name:   name,
-      email:       email,
-      role:        role,
-      department:  dept,
-      organisation:org,
-      is_active:   true
+      userId:    newUser.$id,
+      full_name: name,
+      email:     email,
+      role:      role,
+      is_active: true
     });
-
-    // 4. Log the signup event
-    await auditLog('SIGNUP','profiles',newUser.$id,`New account created: ${name} (${role})`);
-
-    // 5. Show success briefly then boot into the app
+    // 4. Audit log
+    await auditLog('SIGNUP','profiles',newUser.$id,`New account: ${name} (${role})`);
+    // 5. Boot into app
     ok.textContent='Account created! Signing you in…';ok.style.display='block';
     setTimeout(async()=>{ await boot(); },800);
-
   }catch(e){
-    // Handle common errors with friendly messages
     let msg=e.message;
     if(e.code===409||msg.toLowerCase().includes('already'))msg='An account with this email already exists. Try signing in instead.';
     if(msg.toLowerCase().includes('password'))msg='Password must be at least 8 characters long.';
@@ -1053,17 +1051,133 @@ async function audit(){
   </div>`;
 }
 
-async function admin(){
+async function admin(sub='users'){
   if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
-  $('tt').textContent='User Management';
-  const {documents:users}=await listDocs('profiles',[Query.orderAsc('full_name')]);
+  $('tt').textContent='Administration';
+  const [usersRes,rolesRes]=await Promise.all([
+    listDocs('profiles',[Query.orderAsc('full_name')]),
+    listDocs('app_roles',[Query.orderAsc('sort_order')])
+  ]);
+  const users=usersRes.documents, roles=rolesRes.documents;
+  S.roles=roles;
+
   $('mc').innerHTML=`
+  <div class="tabbar">
+    <div class="tabi ${sub==='users'?'active':''}" onclick="admin('users')">
+      <svg style="width:12px;height:12px;margin-right:4px;vertical-align:-2px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Users <span style="background:var(--blue-light);color:var(--blue);padding:1px 6px;border-radius:10px;font-size:.63rem;margin-left:4px">${users.length}</span>
+    </div>
+    <div class="tabi ${sub==='roles'?'active':''}" onclick="admin('roles')">
+      <svg style="width:12px;height:12px;margin-right:4px;vertical-align:-2px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Roles <span style="background:var(--blue-light);color:var(--blue);padding:1px 6px;border-radius:10px;font-size:.63rem;margin-left:4px">${roles.length}</span>
+    </div>
+  </div>
+
+  ${sub==='users'?`
   <div class="card">
-    <div class="ch"><span class="ct">Users &amp; Roles</span><span style="font-size:.72rem;color:var(--text3)">${users.length} users</span></div>
-    <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Organisation</th><th>Active</th><th>Actions</th></tr></thead><tbody>
-    ${users.map(u=>`<tr><td style="font-weight:600">${esc(u.full_name)}</td><td style="font-size:.72rem">${esc(u.email)}</td><td><span class="badge bg-blue">${roleLbl(u.role)}</span></td><td style="font-size:.72rem">${esc(u.department||'—')}</td><td style="font-size:.72rem">${esc(u.organisation||'—')}</td><td>${u.is_active?'<span class="badge bg-green">Active</span>':'<span class="badge bg-red">Inactive</span>'}</td><td><button class="btn btn-ghost btn-sm" onclick="editUserModal('${u.$id}','${u.role}')">Edit Role</button></td></tr>`).join('')}
+    <div class="ch"><span class="ct">User Accounts</span>
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="si" style="max-width:220px"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search users…" oninput="ft(this.value,'utb')"></div>
+      </div>
+    </div>
+    <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr></thead>
+    <tbody id="utb">${users.map(u=>`<tr>
+      <td style="font-weight:600">${esc(u.full_name)}</td>
+      <td style="font-size:.72rem">${esc(u.email)}</td>
+      <td><span class="badge bg-blue">${esc(roleLbl(u.role))}</span></td>
+      <td>${u.is_active?'<span class="badge bg-green">Active</span>':'<span class="badge bg-red">Inactive</span>'}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn btn-ghost btn-sm" onclick="editUserModal('${u.$id}','${u.role}')">Edit Role</button>
+        <button class="btn btn-ghost btn-sm" style="color:${u.is_active?'var(--amber)':'var(--green)'}" onclick="toggleUserActive('${u.$id}',${u.is_active})">${u.is_active?'Deactivate':'Activate'}</button>
+      </td></tr>`).join('')}
     </tbody></table></div>
-  </div>`;
+  </div>`:`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+    <div><p style="font-size:.8rem;color:var(--text2)">Roles control what users can see and do. Active roles appear in the sign-up form.</p></div>
+    <button class="btn btn-primary btn-sm" onclick="openRoleModal()">+ New Role</button>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Role Registry</span><span style="font-size:.72rem;color:var(--text3)">${roles.length} roles · Stored in Appwrite</span></div>
+    <div class="tw"><table><thead><tr><th>Key</th><th>Display Name</th><th>Description</th><th>Sign-up?</th><th>Order</th><th>Actions</th></tr></thead><tbody>
+    ${roles.map(r=>`<tr>
+      <td class="mono" style="font-size:.7rem;color:var(--purple)">${esc(r.key)}</td>
+      <td style="font-weight:600">${esc(r.label)}</td>
+      <td style="font-size:.73rem;color:var(--text2);max-width:200px" class="trunc">${esc(r.description||'—')}</td>
+      <td>${r.is_active?'<span class="badge bg-green">Shown</span>':'<span class="badge bg-gray">Hidden</span>'}</td>
+      <td class="mono" style="font-size:.72rem">${r.sort_order||0}</td>
+      <td style="display:flex;gap:5px">
+        <button class="btn btn-ghost btn-sm" onclick="openRoleModal('${r.$id}')">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:${r.is_active?'var(--amber)':'var(--green)'}" onclick="toggleRole('${r.$id}',${r.is_active})">${r.is_active?'Hide':'Show'}</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteRole('${r.$id}','${esc(r.label)}')">Delete</button>
+      </td></tr>`).join('')||'<tr><td colspan="6" class="te">No roles yet. Click + New Role to add one.</td></tr>'}
+    </tbody></table></div>
+  </div>`}`;
+}
+
+async function toggleUserActive(id, current){
+  await updateDoc('profiles',id,{is_active:!current});
+  toast(`User ${current?'deactivated':'activated'}`,'success');
+  await admin('users');
+}
+
+async function openRoleModal(id=null){
+  let role=null;
+  if(id){
+    try{ role=S.roles.find(r=>r.$id===id)||await getDoc('app_roles',id); }catch{}
+  }
+  om(id?'Edit Role':'New Role',`
+  <div class="fgrid">
+    <div class="fg"><label>Role Key <span class="req">*</span></label>
+      <input id="rl-k" placeholder="e.g. project_manager" value="${esc(role?.key||'')}" ${id?'style="background:#f5f7fa;color:var(--text3)" readonly':''}></div>
+    <div class="fg"><label>Display Name <span class="req">*</span></label>
+      <input id="rl-l" placeholder="e.g. Project Manager" value="${esc(role?.label||'')}"></div>
+    <div class="fg s2"><label>Description</label>
+      <input id="rl-d" placeholder="Brief description of what this role can do" value="${esc(role?.description||'')}"></div>
+    <div class="fg"><label>Sort Order</label>
+      <input id="rl-o" type="number" min="0" value="${role?.sort_order??0}" placeholder="0 = first"></div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+      <input type="checkbox" id="rl-a" ${role?.is_active!==false?'checked':''} style="accent-color:var(--blue);width:14px;height:14px">
+      <label for="rl-a" style="font-size:.8rem;font-weight:500;cursor:pointer">Show in sign-up form</label>
+    </div>
+  </div>
+  ${!id?`<div style="margin-top:10px;background:var(--blue-light);border-left:3px solid var(--blue);padding:8px 11px;border-radius:4px;font-size:.74rem;color:var(--blue-h)">
+    <strong>Role Key</strong> is what gets stored in the database (e.g. <code>project_manager</code>). Use lowercase with underscores. Cannot be changed after creation.
+  </div>`:''}`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-primary" onclick="saveRole(${id?`'${id}'`:'null'})">${id?'Save Changes':'Create Role'}</button>`,
+  {sub:'Stored in Appwrite · Appears in sign-up dropdown when active'});
+}
+
+async function saveRole(id){
+  const v=el=>$(el)?.value?.trim();
+  const key=v('rl-k'),label=v('rl-l');
+  if(!key||!label){toast('Key and display name are required','error');return;}
+  if(!id && !/^[a-z][a-z0-9_]*$/.test(key)){toast('Key must be lowercase letters, numbers and underscores only','error');return;}
+  try{
+    const data={label,description:v('rl-d'),sort_order:parseInt(v('rl-o'))||0,is_active:$('rl-a').checked};
+    if(id){
+      await updateDoc('app_roles',id,data);
+      toast('Role updated!','success');
+    }else{
+      await createDoc('app_roles',{key,...data});
+      toast('Role created!','success');
+    }
+    cm();await admin('roles');
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function toggleRole(id,current){
+  await updateDoc('app_roles',id,{is_active:!current});
+  toast(`Role ${current?'hidden from':'shown in'} sign-up form`,'success');
+  await admin('roles');
+}
+
+async function deleteRole(id,label){
+  if(!confirm(`Delete role "${label}"? This cannot be undone. Users already assigned this role keep it.`))return;
+  try{
+    await db.deleteDocument(DB_ID,'app_roles',id);
+    toast('Role deleted','info');await admin('roles');
+  }catch(e){toast('Error: '+e.message,'error');}
 }
 
 // ─── MODAL FORMS ─────────────────────────────────────────────────────────
@@ -1399,10 +1513,25 @@ async function saveProj(id){
   const p=await getDoc('projects',id);S.proj=p;$('tt').textContent=p.name;renderTab(S.ptab,p);
 }
 
-function editUserModal(id,role){
+async function editUserModal(id,currentRole){
+  // Refresh roles from Appwrite if not loaded
+  if(!S.roles.length){
+    try{const r=await listDocs('app_roles',[Query.orderAsc('sort_order')]);S.roles=r.documents;}catch{}
+  }
+  // Always include the user's current role even if hidden
+  const roleOptions=S.roles.length
+    ? S.roles.map(r=>`<option value="${esc(r.key)}" ${r.key===currentRole?'selected':''}>${esc(r.label)}</option>`).join('')
+    : `<option value="${esc(currentRole)}" selected>${esc(roleLbl(currentRole))}</option>`;
+  // Ensure current role is in the list even if hidden
+  const hasCurrent=S.roles.some(r=>r.key===currentRole);
+  const extra=!hasCurrent?`<option value="${esc(currentRole)}" selected>${esc(roleLbl(currentRole))} (current)</option>`:'';
   om('Edit User Role',`
-  <div class="fg"><label>New Role</label><select id="ur-r"><option value="system_admin" ${role==='system_admin'?'selected':''}>System Admin</option><option value="pmo" ${role==='pmo'?'selected':''}>PMO</option><option value="project_manager" ${role==='project_manager'?'selected':''}>Project Manager</option><option value="project_sponsor" ${role==='project_sponsor'?'selected':''}>Project Sponsor</option><option value="steering_committee" ${role==='steering_committee'?'selected':''}>Steering Committee</option><option value="vendor" ${role==='vendor'?'selected':''}>Vendor / External</option><option value="finance" ${role==='finance'?'selected':''}>Finance / Procurement</option><option value="qa_compliance" ${role==='qa_compliance'?'selected':''}>QA / Compliance</option></select></div>`,
-  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="saveUser('${id}')">Save Role</button>`);
+  <div class="fg"><label>Assign Role</label>
+    <select id="ur-r">${extra}${roleOptions}</select>
+  </div>
+  <p style="font-size:.72rem;color:var(--text3);margin-top:6px">Roles are managed under Administration → Roles tab.</p>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-primary" onclick="saveUser('${id}')">Save Role</button>`);
 }
 async function saveUser(id){
   await updateDoc('profiles',id,{role:$('ur-r')?.value});
@@ -1417,7 +1546,7 @@ function ft(val,tbodyId){
 // BOOT
 (async()=>{
   ['li-e','li-p'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});});
-  ['su-n','su-e','su-d','su-o','su-p','su-p2'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});});
+  ['su-n','su-e','su-p','su-p2'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});});
   await boot();
 })();
 </script>
