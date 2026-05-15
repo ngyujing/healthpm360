@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthPM360 — Project Management Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/appwrite@16"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;height:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#EDF1F7;color:#1A2B4A;height:100%;overflow:hidden}
+input,select,textarea,button{font-family:inherit;font-size:inherit}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#C5D0E0;border-radius:3px}
+:root{
+  --navy:#0C2340;--navy-mid:#1A3660;--blue:#1B56B3;--blue-h:#1648A0;--blue-light:#EBF2FF;
+  --teal:#0B8A82;--teal-light:#E0F5F3;--bg:#EDF1F7;--card:#FFFFFF;
+  --border:#DDE3EC;--text:#1A2B4A;--text2:#4A637A;--text3:#8A9EBA;
+  --green:#0F9E6B;--green-bg:#E6F7F2;--amber:#D97706;--amber-bg:#FEF3C7;
+  --red:#DC2626;--red-bg:#FEE2E2;--purple:#7C3AED;--purple-bg:#EDE9FE;
+  --sw:238px;--th:56px;--r:8px;--rl:12px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shm:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  --shl:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
+}
+#ls{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy);
+  background-image:radial-gradient(ellipse at 20% 20%,#1A3660 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#0B8A82 0%,transparent 50%);
+  position:fixed;inset:0;z-index:1000}
+.lc{background:#fff;border-radius:var(--rl);padding:40px;width:410px;box-shadow:var(--shl)}
+.lb{display:flex;align-items:center;gap:10px;margin-bottom:30px}
+.lb .logo{width:36px;height:36px;background:var(--navy);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.lb h1{font-size:1.2rem;font-weight:800;color:var(--navy)}
+.lb p{font-size:.65rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-top:1px}
+.le{background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;color:var(--red);padding:9px 12px;font-size:.78rem;margin-bottom:11px;display:none}
+.fg{margin-bottom:13px}
+.fg label{display:block;font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:4px;letter-spacing:.03em}
+.fg label .req{color:var(--red);margin-left:2px}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:var(--r);font-size:.83rem;color:var(--text);background:#fff;transition:border .15s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--blue)}
+.fg textarea{resize:vertical;min-height:70px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border:none;border-radius:var(--r);font-weight:600;font-size:.76rem;transition:all .15s;letter-spacing:.02em;white-space:nowrap;cursor:pointer}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-h)}
+.btn-secondary{background:var(--bg);color:var(--text2);border:1.5px solid var(--border)}.btn-secondary:hover{background:var(--border)}
+.btn-success{background:var(--green);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-warning{background:var(--amber);color:#fff}
+.btn-ghost{background:transparent;color:var(--blue);padding:5px 8px}.btn-ghost:hover{background:var(--blue-light)}
+.btn-sm{padding:5px 10px;font-size:.72rem}
+.btn-full{width:100%;justify-content:center;padding:10px}
+#app{display:none;height:100vh;flex-direction:row;overflow:hidden}
+#app.on{display:flex}
+#sb{width:var(--sw);min-width:var(--sw);height:100vh;background:var(--navy);display:flex;flex-direction:column;overflow-y:auto;z-index:10}
+.sbb{padding:15px 13px 11px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sbr{display:flex;align-items:center;gap:8px}
+.sbl{width:29px;height:29px;background:var(--teal);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sbt h1{font-size:.9rem;font-weight:800;color:#fff;line-height:1.1}
+.sbt p{font-size:.57rem;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.sbs{padding:11px 9px 3px}
+.ssl{font-size:.57rem;font-weight:700;color:rgba(255,255,255,.26);text-transform:uppercase;letter-spacing:.12em;padding:0 7px;margin-bottom:3px}
+.nav{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.48);font-size:.76rem;font-weight:500;transition:all .15s;margin-bottom:1px}
+.nav:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8)}
+.nav.active{background:var(--navy-mid);color:#fff;font-weight:600}
+.ni{width:14px;height:14px;flex-shrink:0;opacity:.6}
+.nav.active .ni{opacity:1}
+.nbadge{margin-left:auto;background:var(--red);color:#fff;border-radius:10px;padding:1px 5px;font-size:.57rem;font-weight:700;min-width:16px;text-align:center;display:none}
+.sbf{margin-top:auto;padding:9px;border-top:1px solid rgba(255,255,255,.07)}
+.urow{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:6px;cursor:pointer}
+.urow:hover{background:rgba(255,255,255,.06)}
+.uav{width:26px;height:26px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.67rem;font-weight:700;color:#fff;flex-shrink:0}
+.un{font-size:.7rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ur{font-size:.57rem;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.06em}
+#body{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#tb{height:var(--th);background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.tt{font-size:.95rem;font-weight:700;color:var(--text);flex:1}
+.ts{font-size:.7rem;color:var(--text3);margin-left:5px}
+#mc{flex:1;overflow-y:auto;padding:16px}
+.card{background:var(--card);border-radius:var(--rl);border:1px solid var(--border);box-shadow:var(--sh)}
+.ch{padding:13px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ct{font-size:.85rem;font-weight:700;color:var(--text)}
+.cb{padding:15px}
+.kg{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
+.kc{background:var(--card);border-radius:var(--rl);border:1px solid var(--border);padding:13px 15px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.kc::after{content:'';position:absolute;right:-10px;top:-10px;width:52px;height:52px;border-radius:50%;opacity:.07}
+.kc.kb::after{background:var(--blue)}.kc.kg2::after{background:var(--green)}
+.kc.ka::after{background:var(--amber)}.kc.kr::after{background:var(--red)}
+.kl{font-size:.65rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.kv{font-size:1.8rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:2px}
+.kv.b{color:var(--blue)}.kv.g{color:var(--green)}.kv.a{color:var(--amber)}.kv.r{color:var(--red)}
+.ks{font-size:.68rem;color:var(--text2)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{background:#F5F7FA;color:var(--text2);font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:7px 10px;border-bottom:2px solid var(--border);text-align:left;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:.78rem;color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFD}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2)}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.te{text-align:center;padding:26px;color:var(--text3);font-size:.8rem}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:20px;font-size:.62rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.bg-green{background:var(--green-bg);color:var(--green)}.bg-amber{background:var(--amber-bg);color:var(--amber)}
+.bg-red{background:var(--red-bg);color:var(--red)}.bg-blue{background:var(--blue-light);color:var(--blue)}
+.bg-purple{background:var(--purple-bg);color:var(--purple)}.bg-teal{background:var(--teal-light);color:var(--teal)}
+.bg-gray{background:#F0F2F5;color:var(--text2)}
+.rdot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.tabbar{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:15px}
+.tabi{padding:7px 13px;font-size:.75rem;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;border-radius:4px 4px 0 0}
+.tabi:hover{color:var(--blue);background:var(--blue-light)}
+.tabi.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-light)}
+#mo{position:fixed;inset:0;background:rgba(10,30,60,.45);display:none;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(2px)}
+#mo.show{display:flex}
+.modal{background:#fff;border-radius:var(--rl);width:620px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shl)}
+.modal.lg{width:790px}
+.mh{padding:15px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mh h3{font-size:.94rem;font-weight:700;color:var(--text)}
+.msub{font-size:.7rem;color:var(--text3);margin-top:2px}
+.mbody{padding:18px;overflow-y:auto;flex:1}
+.mfoot{padding:13px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:7px;flex-shrink:0}
+.xbtn{background:none;border:none;cursor:pointer;color:var(--text3);display:flex;align-items:center;padding:3px;border-radius:4px}
+.xbtn:hover{background:var(--bg);color:var(--text)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.fgrid .s2{grid-column:1/-1}
+.fsec{border-top:1px solid var(--border);padding-top:13px;margin-top:13px}
+.fsec h4{font-size:.72rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:9px}
+.fchk{display:flex;align-items:center;gap:7px;padding:4px 0}
+.fchk input[type=checkbox]{width:13px;height:13px;accent-color:var(--blue);cursor:pointer}
+.fchk label{font-size:.78rem;color:var(--text);cursor:pointer;font-weight:500}
+#tc{position:fixed;bottom:18px;right:18px;z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--navy);color:#fff;padding:9px 13px;border-radius:var(--r);box-shadow:var(--shm);font-size:.76rem;font-weight:500;min-width:230px;display:flex;align-items:center;gap:7px;animation:su .2s ease;pointer-events:all}
+.toast.success{background:#064E3B;border-left:3px solid var(--green)}
+.toast.error{background:#7F1D1D;border-left:3px solid var(--red)}
+.toast.info{background:var(--navy-mid);border-left:3px solid var(--blue)}
+@keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.spin{width:17px;height:17px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.loading{display:flex;align-items:center;justify-content:center;padding:34px;color:var(--text3);font-size:.8rem;gap:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px}
+.ag{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px}
+.acard{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--r);padding:12px;cursor:pointer;transition:all .15s}
+.acard:hover{border-color:var(--blue);background:var(--blue-light)}
+.acard .at{font-size:.6rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.acard .an{font-size:.77rem;font-weight:600;color:var(--text);margin-bottom:6px}
+.acard .af{display:flex;align-items:center;justify-content:space-between}
+.acard .av{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text3)}
+.pc{background:var(--card);border-radius:var(--rl);border:1px solid var(--border);padding:14px;box-shadow:var(--sh);cursor:pointer;transition:all .15s;position:relative}
+.pc:hover{border-color:var(--blue);box-shadow:var(--shm);transform:translateY(-1px)}
+.ri{position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%}
+.rag-green{background:var(--green)}.rag-amber{background:var(--amber)}.rag-red{background:var(--red)}
+.rs{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:5px;font-size:.68rem;font-weight:700}
+.rs-l{background:#D1FAE5;color:#065F46}.rs-m{background:#FEF9C3;color:#854D0E}
+.rs-h{background:#FEE2E2;color:#991B1B}.rs-c{background:#7F1D1D;color:#FCA5A5}
+.fb{display:flex;align-items:center;gap:7px;margin-bottom:11px;flex-wrap:wrap}
+.si{display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:5px 9px;flex:1;min-width:170px}
+.si input{border:none;outline:none;background:transparent;font-size:.78rem;color:var(--text);width:100%}
+.fsel{padding:5px 8px;border:1.5px solid var(--border);border-radius:var(--r);font-size:.76rem;color:var(--text);background:#fff;outline:none;cursor:pointer}
+.pbar{background:#E5E7EB;border-radius:3px;height:5px;overflow:hidden}
+.pfill{height:100%;border-radius:3px;background:var(--blue);transition:width .3s}
+.pfill.g{background:var(--green)}.pfill.r{background:var(--red)}
+.dr{display:flex;padding:5px 0;border-bottom:1px solid #F0F2F5;gap:12px}
+.dr:last-child{border-bottom:none}
+.dl{font-size:.7rem;font-weight:600;color:var(--text2);width:140px;flex-shrink:0}
+.dv{font-size:.76rem;color:var(--text);flex:1}
+.dsec{margin-bottom:16px}
+.dsec h4{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div id="ls">
+<div class="lc">
+  <div class="lb">
+    <div class="logo"><svg width="19" height="19" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+    <div><h1>HealthPM360</h1><p>Healthcare Project Governance</p></div>
+  </div>
+  <h2 style="font-size:1.3rem;font-weight:700;margin-bottom:3px">Welcome back</h2>
+  <p style="color:var(--text2);font-size:.8rem;margin-bottom:24px">Sign in to your project workspace</p>
+  <div id="le" class="le"></div>
+  <div class="fg"><label>Email <span class="req">*</span></label><input type="email" id="li-e" placeholder="you@organisation.sg" autocomplete="email"></div>
+  <div class="fg"><label>Password <span class="req">*</span></label><input type="password" id="li-p" placeholder="Password" autocomplete="current-password"></div>
+  <button class="btn btn-primary btn-full" id="li-btn" onclick="doLogin()">
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+    Sign In
+  </button>
+  <p style="margin-top:11px;font-size:.68rem;color:var(--text3);text-align:center">
+    Singapore Healthcare System Integrator · Secure Platform<br>
+    <span style="color:var(--amber)">⚠</span> Authorised users only. All access is audited.
+  </p>
+</div>
+</div>
+
+<div id="app">
+  <nav id="sb">
+    <div class="sbb"><div class="sbr">
+      <div class="sbl"><svg width="14" height="14" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+      <div class="sbt"><h1>HealthPM360</h1><p>PMO Platform</p></div>
+    </div></div>
+    <div class="sbs">
+      <div class="ssl">Overview</div>
+      <div class="nav active" data-v="dashboard"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</div>
+      <div class="nav" data-v="requests"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>Project Requests<span class="nbadge" id="br">0</span></div>
+      <div class="nav" data-v="projects"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>Projects</div>
+    </div>
+    <div class="sbs">
+      <div class="ssl">Governance</div>
+      <div class="nav" data-v="risks"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Risk Register<span class="nbadge" id="brk">0</span></div>
+      <div class="nav" data-v="changes"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>Change Requests<span class="nbadge" id="bc">0</span></div>
+      <div class="nav" data-v="milestones"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Milestones</div>
+    </div>
+    <div class="sbs">
+      <div class="ssl">Reports</div>
+      <div class="nav" data-v="artefacts"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 11H7m12 0l-4 4m4-4l-4-4M7 21H5a2 2 0 01-2-2V5a2 2 0 012-2h2"/></svg>Artefact Library</div>
+      <div class="nav" id="nav-audit" style="display:none" data-v="audit"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Audit Log</div>
+      <div class="nav" id="nav-admin" style="display:none" data-v="admin"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Users</div>
+    </div>
+    <div class="sbf">
+      <div class="urow" onclick="doLogout()">
+        <div class="uav" id="uav">?</div>
+        <div style="flex:1;min-width:0"><div class="un" id="uname">…</div><div class="ur" id="urole">—</div></div>
+        <svg width="12" height="12" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      </div>
+    </div>
+  </nav>
+  <div id="body">
+    <div id="tb">
+      <div style="flex:1"><span class="tt" id="tt">Dashboard</span><span class="ts" id="ts"></span></div>
+      <div style="display:flex;align-items:center;gap:6px" id="ta"></div>
+    </div>
+    <div id="mc"><div class="loading"><div class="spin"></div> Loading…</div></div>
+  </div>
+</div>
+
+<div id="mo" onclick="cm(event)">
+  <div class="modal" id="mb" onclick="event.stopPropagation()">
+    <div class="mh">
+      <div><h3 id="mt">Modal</h3><div class="msub" id="mst"></div></div>
+      <button class="xbtn" onclick="cm()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg></button>
+    </div>
+    <div class="mbody" id="mbody"></div>
+    <div class="mfoot" id="mfoot"></div>
+  </div>
+</div>
+<div id="tc"></div>
+
+<script>
+// ─── CONFIG — update these two values before deploying ────────────────────
+const ENDPOINT   = 'https://cloud.appwrite.io/v1';
+const PROJECT_ID = 'YOUR_PROJECT_ID';
+const DB_ID      = 'healthpm360';
+// ──────────────────────────────────────────────────────────────────────────
+
+const { Client, Account, Databases, Query, ID } = Appwrite;
+const client  = new Client().setEndpoint(ENDPOINT).setProject(PROJECT_ID);
+const account = new Account(client);
+const db      = new Databases(client);
+
+const S = { user:null, profile:null, view:'dashboard', proj:null, ptab:'overview' };
+const genId = pre => `${pre}-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
+
+const $    = id => document.getElementById(id);
+const esc  = s  => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmtD = d  => d ? new Date(d).toLocaleDateString('en-SG',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const fmtM = n  => n != null && n !== '' ? 'S$'+Number(n).toLocaleString('en-SG') : '—';
+const roleLbl = r => ({system_admin:'System Admin',pmo:'PMO',project_manager:'Project Manager',
+  project_sponsor:'Project Sponsor',steering_committee:'Steering Committee',
+  vendor:'Vendor',finance:'Finance',qa_compliance:'QA/Compliance'}[r]||r);
+
+const sbMap={
+  initiation:'bg-blue',planning:'bg-purple',executing:'bg-teal',monitoring_controlling:'bg-amber',
+  closing:'bg-amber',closed:'bg-green',on_hold:'bg-gray',cancelled:'bg-red',
+  draft:'bg-gray',submitted:'bg-blue',pmo_review:'bg-amber',approved:'bg-green',rejected:'bg-red',returned:'bg-amber',
+  open:'bg-red',in_progress:'bg-amber',resolved:'bg-green',
+  critical:'bg-red',high:'bg-amber',medium:'bg-blue',low:'bg-green',
+  not_started:'bg-gray',completed:'bg-green',blocked:'bg-red',
+  ccb_review:'bg-amber',implemented:'bg-green',deferred:'bg-gray',
+  internal:'bg-gray',confidential:'bg-amber',restricted:'bg-red',public:'bg-green',
+  on_track:'bg-green',at_risk:'bg-amber',delayed:'bg-red',
+  identified:'bg-blue',assessed:'bg-purple',mitigating:'bg-amber',accepted:'bg-gray',
+  upcoming:'bg-blue',achieved:'bg-green',missed:'bg-red',
+  scope:'bg-purple',schedule:'bg-amber',cost:'bg-red',quality:'bg-blue',resource:'bg-teal',other:'bg-gray',
+  urgent:'bg-red',normal:'bg-blue',very_low:'bg-green',very_high:'bg-red',
+  negligible:'bg-green',minor:'bg-blue',moderate:'bg-amber',major:'bg-red',
+  positive:'bg-green',negative:'bg-red',neutral:'bg-gray',
+  active:'bg-green',pending:'bg-gray',terminated:'bg-red',
+  pass:'bg-green',conditional_pass:'bg-amber',fail:'bg-red',
+  fixed_price:'bg-blue',time_material:'bg-purple',milestone_based:'bg-teal',retainer:'bg-gray',
+};
+const badge    = s => `<span class="badge ${sbMap[s]||'bg-gray'}">${esc((s||'').replace(/_/g,' '))}</span>`;
+const ragBadge = v => `<span class="badge ${{green:'bg-green',amber:'bg-amber',red:'bg-red'}[v]||'bg-gray'}"><span class="rdot rag-${v}"></span>${(v||'').toUpperCase()}</span>`;
+const rsBadge  = s => {const c=s>=15?'rs-c':s>=9?'rs-h':s>=4?'rs-m':'rs-l';return `<span class="rs ${c}">${s||0}</span>`;};
+const canDo    = p => S.profile?.role==='system_admin'||p.includes(S.profile?.role);
+
+function toast(msg,type='info',dur=3200){
+  const el=document.createElement('div');el.className=`toast ${type}`;
+  el.innerHTML=`<span>${{success:'✓',error:'✕',info:'ℹ'}[type]||'•'}</span><span>${esc(msg)}</span>`;
+  $('tc').appendChild(el);setTimeout(()=>el.remove(),dur);
+}
+function om(title,body,footer='',opts={}){
+  $('mt').textContent=title;$('mst').textContent=opts.sub||'';
+  $('mbody').innerHTML=body;$('mfoot').innerHTML=footer;
+  $('mb').className='modal'+(opts.lg?' lg':'');$('mo').classList.add('show');
+}
+function cm(e){if(!e||e.target===$('mo'))$('mo').classList.remove('show');}
+
+// DB helpers
+async function listDocs(col,queries=[]){return db.listDocuments(DB_ID,col,[...queries,Query.limit(200)]);}
+async function getDoc(col,id){return db.getDocument(DB_ID,col,id);}
+async function createDoc(col,data){return db.createDocument(DB_ID,col,ID.unique(),data);}
+async function updateDoc(col,id,data){return db.updateDocument(DB_ID,col,id,data);}
+
+async function auditLog(action,entityType,entityId,description,projectId){
+  try{await createDoc('audit_logs',{user_id:S.profile?.$id||'',user_email:S.profile?.email||'',user_role:S.profile?.role||'',action,entity_type:entityType||'',entity_id:entityId||'',project_id:projectId||'',description});}catch{}
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────
+async function doLogin(){
+  const email=$('li-e').value.trim(),pass=$('li-p').value;
+  const err=$('le'),btn=$('li-btn');
+  if(!email||!pass){err.textContent='Email and password required.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    await account.createEmailPasswordSession(email,pass);
+    await boot();
+  }catch(e){
+    err.textContent=e.message.includes('Invalid')||e.code===401?'Incorrect email or password.':e.message;
+    err.style.display='block';btn.disabled=false;btn.textContent='Sign In';
+  }
+}
+async function doLogout(){try{await account.deleteSession('current');}catch{}S.user=null;S.profile=null;$('ls').style.display='flex';$('app').classList.remove('on');}
+
+async function boot(){
+  try{
+    S.user=await account.get();
+    const res=await listDocs('profiles',[Query.equal('userId',S.user.$id)]);
+    if(!res.documents.length){$('ls').style.display='none';$('app').classList.add('on');firstTimeSetup();return;}
+    S.profile=res.documents[0];
+    $('ls').style.display='none';$('app').classList.add('on');
+    setupSidebar();await nav('dashboard');updateBadges();
+  }catch{$('ls').style.display='flex';$('app').classList.remove('on');}
+}
+function firstTimeSetup(){
+  $('mc').innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:60vh"><div class="card" style="width:410px;padding:28px;text-align:center">
+    <div style="font-size:2rem;margin-bottom:8px">👤</div>
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:5px">Complete Your Profile</h2>
+    <p style="font-size:.8rem;color:var(--text2);margin-bottom:18px">Your account was created. Fill in your details to continue.</p>
+    <div class="fg"><label>Full Name <span class="req">*</span></label><input id="fp-n" value="${esc(S.user.name||'')}"></div>
+    <div class="fg"><label>Department</label><input id="fp-d" placeholder="e.g. IT Delivery"></div>
+    <div class="fg"><label>Organisation</label><input id="fp-o" placeholder="e.g. HealthSI Pte Ltd"></div>
+    <button class="btn btn-primary btn-full" onclick="createFirstProfile()" style="margin-top:5px">Complete Setup</button>
+  </div></div>`;
+}
+async function createFirstProfile(){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('fp-n')){toast('Full name required','error');return;}
+  try{
+    S.profile=await createDoc('profiles',{userId:S.user.$id,full_name:v('fp-n'),email:S.user.email,role:'project_manager',department:v('fp-d'),organisation:v('fp-o'),is_active:true});
+    setupSidebar();await nav('dashboard');updateBadges();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+function setupSidebar(){
+  const p=S.profile;
+  $('uname').textContent=p.full_name;$('urole').textContent=roleLbl(p.role);$('uav').textContent=(p.full_name||'?')[0].toUpperCase();
+  if(['system_admin','pmo','qa_compliance'].includes(p.role))$('nav-audit').style.display='flex';
+  if(p.role==='system_admin')$('nav-admin').style.display='flex';
+  auditLog('LOGIN','session',null,'User signed in');
+}
+
+async function nav(view,params={}){
+  S.view=view;
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  const el=document.querySelector(`.nav[data-v="${view}"]`);if(el)el.classList.add('active');
+  $('ta').innerHTML='';$('ts').textContent='';
+  $('mc').innerHTML=`<div class="loading"><div class="spin"></div> Loading…</div>`;
+  ({dashboard,requests,projects,risks,changes,milestones,artefacts,audit,admin,projDetail}[view]||projects)(params);
+}
+document.querySelectorAll('.nav[data-v]').forEach(el=>el.addEventListener('click',()=>nav(el.dataset.v)));
+
+async function updateBadges(){
+  try{
+    const [rq,rk,cr]=await Promise.all([
+      listDocs('project_requests',[Query.equal('status','submitted')]),
+      listDocs('risks',[Query.greaterThanEqual('risk_score',15)]),
+      listDocs('change_requests',[Query.equal('status','submitted')])
+    ]);
+    const sb=(id,n)=>{const e=$(id);if(e){e.textContent=n;e.style.display=n>0?'inline':'none';}};
+    sb('br',rq.total);sb('brk',rk.total);sb('bc',cr.total);
+  }catch{}
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────
+async function dashboard(){
+  $('tt').textContent='Dashboard';
+  const [pj,rq,rk,cr,ms]=await Promise.all([
+    listDocs('projects',[Query.equal('is_archived',false)]),
+    listDocs('project_requests',[Query.orderDesc('$createdAt')]),
+    listDocs('risks'),
+    listDocs('change_requests',[Query.orderDesc('$createdAt')]),
+    listDocs('milestones',[Query.equal('status','at_risk'),Query.orderAsc('planned_date')])
+  ]);
+  const projs=pj.documents,reqs=rq.documents,riskd=rk.documents,crs=cr.documents,mss=ms.documents;
+  const active=projs.filter(p=>!['closed','cancelled'].includes(p.status)).length;
+  const atRisk=projs.filter(p=>p.health_status==='red').length;
+  const crit=riskd.filter(r=>r.risk_score>=15&&!['closed','accepted'].includes(r.status)).length;
+  const pend=reqs.filter(r=>['submitted','pmo_review'].includes(r.status)).length;
+  $('mc').innerHTML=`
+  <div class="kg">
+    <div class="kc kb"><div class="kl">Active Projects</div><div class="kv b">${active}</div><div class="ks">${projs.length} total</div></div>
+    <div class="kc kr"><div class="kl">At-Risk Projects</div><div class="kv r">${atRisk}</div><div class="ks">Health status RED</div></div>
+    <div class="kc ka"><div class="kl">Critical Risks</div><div class="kv a">${crit}</div><div class="ks">Score ≥ 15</div></div>
+    <div class="kc kg2"><div class="kl">Pending Requests</div><div class="kv g">${pend}</div><div class="ks">Awaiting PMO review</div></div>
+  </div>
+  <div class="g2" style="gap:11px;margin-bottom:11px">
+    <div class="card">
+      <div class="ch"><span class="ct">Portfolio Health</span><button class="btn btn-ghost btn-sm" onclick="nav('projects')">View All →</button></div>
+      <div class="tw"><table><thead><tr><th>Project</th><th>Status</th><th>Health</th><th>Budget</th></tr></thead><tbody>
+      ${projs.slice(0,6).map(p=>`<tr style="cursor:pointer" onclick="nav('projDetail',{id:'${p.$id}'})"><td><div style="font-weight:600;font-size:.78rem">${esc(p.name)}</div><div class="mono">${esc(p.project_code)}</div></td><td>${badge(p.status)}</td><td>${ragBadge(p.health_status)}</td><td style="font-size:.74rem">${fmtM(p.planned_budget)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No projects</td></tr>'}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">At-Risk Milestones</span><button class="btn btn-ghost btn-sm" onclick="nav('milestones')">View All →</button></div>
+      <div class="tw"><table><thead><tr><th>Milestone</th><th>Due</th><th>Status</th></tr></thead><tbody>
+      ${mss.slice(0,6).map(m=>`<tr><td class="trunc" style="max-width:160px">${esc(m.name)}</td><td class="mono" style="font-size:.7rem">${fmtD(m.planned_date)}</td><td>${badge(m.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No at-risk milestones</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>
+  <div class="g2" style="gap:11px">
+    <div class="card">
+      <div class="ch"><span class="ct">Recent Requests</span><button class="btn btn-ghost btn-sm" onclick="nav('requests')">View All →</button></div>
+      <div class="tw"><table><thead><tr><th>Title</th><th>Requestor</th><th>Status</th></tr></thead><tbody>
+      ${reqs.slice(0,5).map(r=>`<tr><td class="trunc" style="max-width:180px">${esc(r.title)}</td><td style="font-size:.73rem">${esc(r.requestor_name)}</td><td>${badge(r.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No requests</td></tr>'}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Recent Change Requests</span><button class="btn btn-ghost btn-sm" onclick="nav('changes')">View All →</button></div>
+      <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Status</th></tr></thead><tbody>
+      ${crs.slice(0,5).map(c=>`<tr><td class="mono">${esc(c.cr_number)}</td><td class="trunc" style="max-width:160px">${esc(c.title)}</td><td>${badge(c.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No CRs</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+
+// ─── PROJECT REQUESTS ─────────────────────────────────────────────────────
+async function requests(){
+  $('tt').textContent='Project Requests';
+  if(canDo(['pmo','project_manager','project_sponsor']))$('ta').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openReqModal()">+ New Request</button>`;
+  const {documents:data}=await listDocs('project_requests',[Query.orderDesc('$createdAt')]);
+  $('mc').innerHTML=`
+  <div class="card">
+    <div class="ch"><span class="ct">All Project Requests</span><span style="font-size:.72rem;color:var(--text3)">${data.length} total</span></div>
+    <div class="cb" style="padding:9px">
+      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search…" oninput="ft(this.value,'rqtb')"></div></div>
+      <div class="tw"><table><thead><tr><th>Req #</th><th>Title</th><th>Requestor</th><th>Status</th><th>Budget</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="rqtb">${data.map(r=>`<tr>
+        <td class="mono" style="color:var(--blue);cursor:pointer" onclick="viewReq('${r.$id}')">${esc(r.request_number||'—')}</td>
+        <td style="max-width:190px"><div style="font-weight:600;font-size:.78rem">${esc(r.title)}</div><div style="font-size:.68rem;color:var(--text3)">${esc(r.requestor_department||'')}</div></td>
+        <td style="font-size:.76rem">${esc(r.requestor_name)}</td><td>${badge(r.status)}</td>
+        <td style="font-size:.75rem">${r.initial_budget_estimate?fmtM(r.initial_budget_estimate):'—'}</td>
+        <td class="mono" style="font-size:.68rem">${fmtD(r.$createdAt)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">View</button>
+          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprReq('${r.$id}')">Approve</button>`:''}
+        </td></tr>`).join('')||'<tr><td colspan="7" class="te">No requests</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+function openReqModal(){
+  om('New Project Request',`
+  <div style="background:var(--blue-light);border-left:3px solid var(--blue);padding:8px 11px;border-radius:4px;font-size:.75rem;color:var(--blue-h);margin-bottom:13px">Official entry point for all new project proposals. Complete all mandatory fields.</div>
+  <div class="fgrid">
+    <div class="fg"><label>Requestor Name <span class="req">*</span></label><input id="rf-n" value="${esc(S.profile?.full_name||'')}"></div>
+    <div class="fg"><label>Email <span class="req">*</span></label><input id="rf-e" type="email" value="${esc(S.profile?.email||'')}"></div>
+    <div class="fg"><label>Department</label><input id="rf-d" value="${esc(S.profile?.department||'')}"></div>
+    <div class="fg"><label>Urgency</label><select id="rf-u"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+    <div class="fg s2"><label>Project Title <span class="req">*</span></label><input id="rf-t" required></div>
+    <div class="fg s2"><label>Business Problem / Opportunity <span class="req">*</span></label><textarea id="rf-p" rows="3" required></textarea></div>
+    <div class="fg s2"><label>High-Level Scope <span class="req">*</span></label><textarea id="rf-s" rows="3" required></textarea></div>
+    <div class="fg s2"><label>Expected Benefits <span class="req">*</span></label><textarea id="rf-b" rows="2" required></textarea></div>
+  </div>
+  <div class="fsec"><h4>Financials &amp; Timeline</h4>
+    <div class="fgrid">
+      <div class="fg"><label>Budget Estimate (S$)</label><input id="rf-bud" type="number" min="0"></div>
+      <div class="fg"><label>Funding Source</label><input id="rf-fs" placeholder="CAPEX, MOH Grant…"></div>
+      <div class="fg"><label>Target Start</label><input id="rf-ts" type="date"></div>
+      <div class="fg"><label>Target End</label><input id="rf-te" type="date"></div>
+    </div>
+  </div>
+  <div class="fsec"><h4>Healthcare / Regulatory Flags</h4>
+    <div class="fchk"><input type="checkbox" id="rf-reg"><label for="rf-reg">Regulatory / compliance requirement (MOH, PDPA)</label></div>
+    <div class="fchk"><input type="checkbox" id="rf-phi"><label for="rf-phi">Patient Health Information (PHI) involved</label></div>
+    <div class="fchk"><input type="checkbox" id="rf-moh"><label for="rf-moh">MOH reporting required</label></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitReq()">Submit Request</button>`,
+  {lg:true,sub:'All submissions are permanently logged'});
+}
+async function submitReq(){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('rf-t')||!v('rf-p')||!v('rf-s')||!v('rf-b')){toast('Fill mandatory fields (*)','error');return;}
+  try{
+    await createDoc('project_requests',{request_number:genId('REQ'),requestor_id:S.profile.$id,requestor_name:v('rf-n')||S.profile.full_name,requestor_email:v('rf-e')||S.profile.email,requestor_department:v('rf-d'),urgency_level:v('rf-u'),title:v('rf-t'),business_problem:v('rf-p'),high_level_scope:v('rf-s'),expected_benefits:v('rf-b'),initial_budget_estimate:parseFloat(v('rf-bud'))||0,funding_source:v('rf-fs'),target_start_date:v('rf-ts')||'',target_end_date:v('rf-te')||'',regulatory_indicator:$('rf-reg').checked,phi_involved:$('rf-phi').checked,moh_reporting_required:$('rf-moh').checked,status:'submitted'});
+    await auditLog('REQUEST_SUBMITTED','project_request',null,`Submitted: ${v('rf-t')}`);
+    toast('Request submitted!','success');cm();updateBadges();await requests();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+async function viewReq(id){
+  const r=await getDoc('project_requests',id);
+  const canA=canDo(['pmo'])&&['submitted','pmo_review'].includes(r.status);
+  om(`Request: ${r.request_number||'—'}`,`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+    <div>
+      <div class="dsec"><h4>Requestor</h4>
+        <div class="dr"><span class="dl">Name</span><span class="dv">${esc(r.requestor_name)}</span></div>
+        <div class="dr"><span class="dl">Email</span><span class="dv">${esc(r.requestor_email)}</span></div>
+        <div class="dr"><span class="dl">Department</span><span class="dv">${esc(r.requestor_department||'—')}</span></div>
+        <div class="dr"><span class="dl">Urgency</span><span class="dv">${badge(r.urgency_level)}</span></div>
+        <div class="dr"><span class="dl">Status</span><span class="dv">${badge(r.status)}</span></div>
+        <div class="dr"><span class="dl">Submitted</span><span class="dv">${fmtD(r.$createdAt)}</span></div>
+        <div class="dr"><span class="dl">Budget Est.</span><span class="dv">${fmtM(r.initial_budget_estimate)}</span></div>
+        <div class="dr"><span class="dl">Target Start</span><span class="dv">${fmtD(r.target_start_date)}</span></div>
+      </div>
+      <div class="dsec"><h4>Healthcare Flags</h4><div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${r.regulatory_indicator?`<span class="badge bg-amber">Regulatory</span>`:''}
+        ${r.phi_involved?`<span class="badge bg-red">PHI Involved</span>`:''}
+        ${r.moh_reporting_required?`<span class="badge bg-purple">MOH Reporting</span>`:''}
+        ${!r.regulatory_indicator&&!r.phi_involved&&!r.moh_reporting_required?'<span style="color:var(--text3);font-size:.75rem">None flagged</span>':''}
+      </div></div>
+    </div>
+    <div>
+      <div class="dsec"><h4>Business Problem</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem)}</p></div>
+      <div class="dsec"><h4>Scope</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.high_level_scope)}</p></div>
+      <div class="dsec"><h4>Expected Benefits</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.expected_benefits)}</p></div>
+      ${r.pmo_review_notes?`<div class="dsec"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
+    </div>
+  </div>
+  ${canA?`<div class="fsec"><h4>PMO Decision</h4><div class="fg"><label>Review Notes</label><textarea id="pmn" rows="2"></textarea></div></div>`:''}`,
+  `<button class="btn btn-secondary" onclick="cm()">Close</button>
+   ${canA?`<button class="btn btn-danger" onclick="rejectReq('${r.$id}')">Reject</button><button class="btn btn-success" onclick="apprReq('${r.$id}')">Approve</button>`:''}`,
+  {lg:true,sub:r.title});
+}
+async function apprReq(id){
+  const notes=$('pmn')?.value||'';
+  await updateDoc('project_requests',id,{status:'approved',pmo_review_notes:notes,pmo_reviewed_by:S.profile.$id,approved_at:new Date().toISOString()});
+  await auditLog('REQUEST_APPROVED','project_request',id,'Approved by PMO');
+  toast('Request approved!','success');cm();updateBadges();await requests();
+}
+async function rejectReq(id){
+  const notes=$('pmn')?.value||'';
+  if(!notes){toast('Provide rejection reason in notes','error');return;}
+  await updateDoc('project_requests',id,{status:'rejected',rejected_reason:notes,pmo_reviewed_by:S.profile.$id});
+  await auditLog('REQUEST_REJECTED','project_request',id,'Rejected by PMO');
+  toast('Request rejected','info');cm();await requests();
+}
+
+// ─── PROJECTS ─────────────────────────────────────────────────────────────
+async function projects(){
+  $('tt').textContent='Project Portfolio';
+  if(canDo(['pmo','system_admin']))$('ta').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openProjModal()">+ New Project</button>`;
+  const {documents:data}=await listDocs('projects',[Query.equal('is_archived',false),Query.orderDesc('$createdAt')]);
+  const active=data.filter(p=>!['closed','cancelled'].includes(p.status)).length;
+  $('mc').innerHTML=`
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
+    <div><h2 style="font-size:1.1rem;font-weight:800">${active} Active Projects</h2><p style="font-size:.76rem;color:var(--text2)">${data.length} total in portfolio</p></div>
+  </div>
+  <div class="fb"><div class="si" style="max-width:270px"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search projects…" oninput="filterPc(this.value)"></div>
+  <select class="fsel" onchange="filterPc('',this.value)"><option value="">All Statuses</option><option>initiation</option><option>planning</option><option>executing</option><option>monitoring_controlling</option><option>closing</option><option>closed</option></select></div>
+  <div id="pgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:11px">
+  ${data.map(p=>`
+    <div class="pc" onclick="nav('projDetail',{id:'${p.$id}'})" data-name="${esc(p.name).toLowerCase()}" data-status="${p.status}">
+      <span class="ri rag-${p.health_status}"></span>
+      <div class="mono" style="font-size:.6rem;margin-bottom:4px">${esc(p.project_code)} ${p.healthcare_sensitivity?`<span class="badge bg-red" style="font-size:.53rem;padding:1px 4px">PHI</span>`:''}</div>
+      <div style="font-size:.87rem;font-weight:700;margin-bottom:3px;line-height:1.3">${esc(p.name)}</div>
+      <div style="font-size:.7rem;color:var(--text2);margin-bottom:8px">${esc(p.client_organisation)}</div>
+      <div style="margin-bottom:7px">${badge(p.status)}</div>
+      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);font-size:.68rem;color:var(--text3)">
+        <span>PM: ${esc(p.project_manager_name||'—')}</span><span>${fmtM(p.planned_budget)}</span>
+      </div>
+    </div>`).join('')||'<div style="grid-column:1/-1;text-align:center;padding:36px;color:var(--text3)">No projects yet.</div>'}
+  </div>`;
+}
+function filterPc(s='',st=''){
+  document.querySelectorAll('#pgrid .pc').forEach(c=>{
+    const nm=!s||c.dataset.name.includes(s.toLowerCase()),sts=!st||c.dataset.status===st;
+    c.style.display=nm&&sts?'':'none';
+  });
+}
+function openProjModal(){
+  om('Create New Project',`
+  <div class="fgrid">
+    <div class="fg"><label>Project Code <span class="req">*</span></label><input id="pf-c" placeholder="PROJ-2025-001"></div>
+    <div class="fg"><label>Client Organisation <span class="req">*</span></label><input id="pf-cl"></div>
+    <div class="fg s2"><label>Project Name <span class="req">*</span></label><input id="pf-n"></div>
+    <div class="fg s2"><label>Description</label><textarea id="pf-d" rows="2"></textarea></div>
+    <div class="fg"><label>Planned Start</label><input id="pf-s" type="date"></div>
+    <div class="fg"><label>Planned End</label><input id="pf-e" type="date"></div>
+    <div class="fg"><label>Planned Budget (S$)</label><input id="pf-b" type="number" min="0"></div>
+    <div class="fg"><label>Contract Reference</label><input id="pf-cr"></div>
+    <div class="fg"><label>Data Classification</label><select id="pf-dc"><option value="internal">Internal</option><option value="confidential">Confidential</option><option value="restricted">Restricted</option></select></div>
+    <div class="fg"><label>Health Status</label><select id="pf-h"><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option></select></div>
+  </div>
+  <div class="fsec"><h4>Healthcare Flags</h4>
+    <div class="fchk"><input type="checkbox" id="pf-phi"><label for="pf-phi">Healthcare / PHI data involved</label></div>
+    <div class="fchk"><input type="checkbox" id="pf-moh"><label for="pf-moh">MOH reporting required</label></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="createProj()">Create Project</button>`);
+}
+async function createProj(){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('pf-c')||!v('pf-n')||!v('pf-cl')){toast('Fill mandatory fields','error');return;}
+  try{
+    const doc=await createDoc('projects',{project_code:v('pf-c'),name:v('pf-n'),description:v('pf-d'),status:'initiation',client_organisation:v('pf-cl'),contract_reference:v('pf-cr'),planned_start_date:v('pf-s')||'',planned_end_date:v('pf-e')||'',planned_budget:parseFloat(v('pf-b'))||0,actual_cost:0,sensitivity_class:v('pf-dc'),health_status:v('pf-h'),healthcare_sensitivity:$('pf-phi').checked,moh_reporting_required:$('pf-moh').checked,project_manager_id:S.profile.$id,project_manager_name:S.profile.full_name,baseline_locked:false,is_archived:false,created_by:S.profile.$id});
+    await auditLog('PROJECT_CREATED','project',doc.$id,`Created: ${v('pf-n')}`);
+    toast('Project created!','success');cm();await projects();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+// ─── PROJECT DETAIL ────────────────────────────────────────────────────────
+async function projDetail({id}){
+  if(!id){await projects();return;}
+  let p;try{p=await getDoc('projects',id);}catch{toast('Project not found','error');await projects();return;}
+  S.proj=p;
+  $('tt').textContent=p.name;$('ts').textContent=`${p.project_code} — ${p.client_organisation}`;
+  $('ta').innerHTML=`<span>${ragBadge(p.health_status)}</span>
+    ${canDo(['pmo','project_manager'])?`<button class="btn btn-ghost btn-sm" onclick="editProjModal('${p.$id}')">Edit</button>`:''}
+    <button class="btn btn-secondary btn-sm" onclick="nav('projects')">← Portfolio</button>`;
+  const tabs=['overview','initiation','planning','executing','monitoring','closing'];
+  const tl={overview:'Overview',initiation:'1. Initiating',planning:'2. Planning',executing:'3. Executing',monitoring:'4. Mon. & Control',closing:'5. Closing'};
+  $('mc').innerHTML=`
+  <div class="tabbar">${tabs.map(t=>`<div class="tabi ${S.ptab===t?'active':''}" data-tab="${t}" onclick="swTab('${t}')">${tl[t]}</div>`).join('')}</div>
+  <div id="tc2"><div class="loading"><div class="spin"></div></div></div>`;
+  await renderTab(S.ptab,p);
+}
+function swTab(tab){
+  S.ptab=tab;
+  document.querySelectorAll('.tabi').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));
+  renderTab(tab,S.proj);
+}
+async function renderTab(tab,p){
+  const el=$('tc2');el.innerHTML=`<div class="loading"><div class="spin"></div></div>`;
+  switch(tab){
+    case 'overview':  await tOverview(p,el);break;
+    case 'initiation':await tInit(p,el);break;
+    case 'planning':  await tPlan(p,el);break;
+    case 'executing': await tExec(p,el);break;
+    case 'monitoring':await tMon(p,el);break;
+    case 'closing':   await tClose(p,el);break;
+  }
+}
+
+async function tOverview(p,el){
+  const [ar,sk,tk,ms]=await Promise.all([
+    listDocs('artefacts',[Query.equal('project_id',p.$id)]),
+    listDocs('stakeholders',[Query.equal('project_id',p.$id)]),
+    listDocs('tasks',[Query.equal('project_id',p.$id)]),
+    listDocs('milestones',[Query.equal('project_id',p.$id),Query.orderAsc('planned_date')])
+  ]);
+  const arts=ar.documents,tasks=tk.documents;
+  const done=tasks.filter(t=>t.status==='completed').length;
+  const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  el.innerHTML=`
+  <div class="g2" style="gap:11px;margin-bottom:11px">
+    <div class="card"><div class="ch"><span class="ct">Project Details</span></div><div class="cb">
+      <div class="dsec">
+        <div class="dr"><span class="dl">Code</span><span class="dv mono">${esc(p.project_code)}</span></div>
+        <div class="dr"><span class="dl">Status</span><span class="dv">${badge(p.status)}</span></div>
+        <div class="dr"><span class="dl">Health</span><span class="dv">${ragBadge(p.health_status)}</span></div>
+        <div class="dr"><span class="dl">Project Manager</span><span class="dv">${esc(p.project_manager_name||'—')}</span></div>
+        <div class="dr"><span class="dl">Sponsor</span><span class="dv">${esc(p.sponsor_name||'—')}</span></div>
+        <div class="dr"><span class="dl">Client</span><span class="dv">${esc(p.client_organisation)}</span></div>
+        <div class="dr"><span class="dl">Contract Ref</span><span class="dv mono">${esc(p.contract_reference||'—')}</span></div>
+        <div class="dr"><span class="dl">Classification</span><span class="dv">${badge(p.sensitivity_class)}</span></div>
+        <div class="dr"><span class="dl">PHI</span><span class="dv">${p.healthcare_sensitivity?'<span class="badge bg-red">Yes — PHI</span>':'No'}</span></div>
+        <div class="dr"><span class="dl">Baseline</span><span class="dv">${p.baseline_locked?'<span class="badge bg-green">Locked</span>':'<span class="badge bg-gray">Not Locked</span>'}</span></div>
+      </div>
+    </div></div>
+    <div class="card"><div class="ch"><span class="ct">Schedule &amp; Budget</span></div><div class="cb">
+      <div class="dsec"><h4>Timeline</h4>
+        <div class="dr"><span class="dl">Planned Start</span><span class="dv">${fmtD(p.planned_start_date)}</span></div>
+        <div class="dr"><span class="dl">Planned End</span><span class="dv">${fmtD(p.planned_end_date)}</span></div>
+        <div class="dr"><span class="dl">Actual Start</span><span class="dv">${fmtD(p.actual_start_date)}</span></div>
+      </div>
+      <div class="dsec"><h4>Budget</h4>
+        <div class="dr"><span class="dl">Planned</span><span class="dv">${fmtM(p.planned_budget)}</span></div>
+        <div class="dr"><span class="dl">Approved</span><span class="dv">${fmtM(p.approved_budget)}</span></div>
+        <div class="dr"><span class="dl">Actual Cost</span><span class="dv">${fmtM(p.actual_cost)}</span></div>
+      </div>
+      <div class="dsec"><h4>Task Progress</h4>
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px">${done} / ${tasks.length} tasks complete</div>
+        <div class="pbar"><div class="pfill ${pct>=80?'g':pct<30?'r':''}" style="width:${pct}%"></div></div>
+        <div style="font-size:.68rem;color:var(--text3);margin-top:3px">${pct}% complete</div>
+      </div>
+    </div></div>
+  </div>
+  <div class="g3" style="gap:11px">
+    <div class="card"><div class="ch"><span class="ct">Artefacts</span></div><div class="cb">
+      <div style="font-size:1.7rem;font-weight:800;color:var(--blue)">${arts.length}</div>
+      <div style="font-size:.72rem;color:var(--text2)">${arts.filter(a=>a.status==='approved').length} approved · ${arts.filter(a=>a.status==='draft').length} draft</div>
+    </div></div>
+    <div class="card"><div class="ch"><span class="ct">Stakeholders</span></div><div class="cb">
+      <div style="font-size:1.7rem;font-weight:800;color:var(--teal)">${sk.documents.length}</div>
+      <div style="font-size:.72rem;color:var(--text2)">Registered stakeholders</div>
+    </div></div>
+    <div class="card"><div class="ch"><span class="ct">Milestones</span></div><div class="cb">
+      <div style="font-size:1.7rem;font-weight:800;color:var(--purple)">${ms.documents.length}</div>
+      <div style="font-size:.72rem;color:var(--text2)">${ms.documents.filter(m=>m.status==='achieved').length} achieved · ${ms.documents.filter(m=>m.status==='at_risk').length} at risk</div>
+    </div></div>
+  </div>`;
+}
+
+async function tInit(p,el){
+  const [ar,sk,is]=await Promise.all([
+    listDocs('artefacts',[Query.equal('project_id',p.$id)]),
+    listDocs('stakeholders',[Query.equal('project_id',p.$id)]),
+    listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')])
+  ]);
+  const types=[{t:'business_case',l:'Business Case'},{t:'benefits_management_plan',l:'Benefits Mgmt Plan'},{t:'project_charter',l:'Project Charter'},{t:'stakeholder_register',l:'Stakeholder Register'},{t:'raid_log',l:'RAID Log'}];
+  el.innerHTML=`
+  <div class="g2" style="gap:11px;margin-bottom:11px">
+    <div class="card">
+      <div class="ch"><span class="ct">Initiation Artefacts</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','initiation')">+ Add</button>`:''}</div>
+      <div class="cb" style="padding:9px"><div class="ag">
+        ${types.map(at=>{const f=ar.documents.find(a=>a.artefact_type===at.t);return `<div class="acard" onclick="${f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','initiation','${at.t}')`}"><div class="at">${at.t.replace(/_/g,' ')}</div><div class="an">${f?esc(f.title):at.l}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.68rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
+      </div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Stakeholder Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openStakeModal('${p.$id}')">+ Add</button>`:''}</div>
+      <div class="tw"><table><thead><tr><th>Name</th><th>Org</th><th>Role</th><th>Influence</th><th>Engagement</th></tr></thead><tbody>
+      ${sk.documents.map(s=>`<tr><td style="font-weight:600">${esc(s.name)}</td><td style="font-size:.72rem">${esc(s.organisation||'—')}</td><td style="font-size:.72rem">${esc(s.role_title)}</td><td>${badge(s.influence_level)}</td><td>${badge(s.current_engagement)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No stakeholders</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">RAID Log (Risks, Assumptions, Issues, Dependencies)</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log Issue</button>`:''}</div>
+    <div class="tw"><table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Severity</th><th>Status</th></tr></thead><tbody>
+    ${is.documents.map(i=>`<tr><td class="mono">${esc(i.issue_id||'—')}</td><td class="trunc" style="max-width:180px;font-weight:500">${esc(i.title)}</td><td style="font-size:.72rem">${esc(i.category||'—')}</td><td>${badge(i.severity)}</td><td>${badge(i.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No RAID items</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+async function tPlan(p,el){
+  const [ar,rk,ms,vn]=await Promise.all([
+    listDocs('artefacts',[Query.equal('project_id',p.$id)]),
+    listDocs('risks',[Query.equal('project_id',p.$id),Query.orderDesc('risk_score')]),
+    listDocs('milestones',[Query.equal('project_id',p.$id),Query.orderAsc('planned_date')]),
+    listDocs('vendors',[Query.equal('project_id',p.$id)])
+  ]);
+  const planTypes=['project_management_plan','scope_statement','wbs','wbs_dictionary','schedule_baseline','cost_baseline','quality_plan','resource_plan','raci_matrix','communication_plan','risk_management_plan','procurement_plan','change_management_plan','requirements_register','traceability_matrix'];
+  el.innerHTML=`
+  <div class="card" style="margin-bottom:11px">
+    <div class="ch"><span class="ct">Planning Artefacts (PMP &amp; Subsidiary Plans)</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','planning')">+ Add</button>`:''}
+        ${canDo(['pmo'])&&!p.baseline_locked?`<button class="btn btn-success btn-sm" onclick="lockBase('${p.$id}')">🔒 Lock Baseline</button>`:''}
+        ${p.baseline_locked?`<span class="badge bg-green" style="font-size:.68rem">✓ Baseline Locked</span>`:''}
+      </div>
+    </div>
+    <div class="cb" style="padding:9px"><div class="ag">
+      ${planTypes.map(t=>{const f=ar.documents.find(a=>a.artefact_type===t);return `<div class="acard" onclick="${f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','planning','${t}')`}"><div class="at">${t.replace(/_/g,' ')}</div><div class="an" style="font-size:.74rem">${f?esc(f.title):t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.66rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
+    </div></div>
+  </div>
+  <div class="g2" style="gap:11px;margin-bottom:11px">
+    <div class="card">
+      <div class="ch"><span class="ct">Risk Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openRskModal('${p.$id}')">+ Add</button>`:''}</div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Risk</th><th>Score</th><th>Status</th><th>Owner</th></tr></thead><tbody>
+      ${rk.documents.map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:140px;font-weight:500">${esc(r.title)}</td><td>${rsBadge(r.risk_score)}</td><td>${badge(r.status)}</td><td style="font-size:.72rem">${esc(r.owner_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No risks</td></tr>'}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Milestones &amp; Stage Gates</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openMsModal('${p.$id}')">+ Add</button>`:''}</div>
+      <div class="tw"><table><thead><tr><th>Milestone</th><th>Due</th><th>Gate?</th><th>Status</th></tr></thead><tbody>
+      ${ms.documents.map(m=>`<tr><td class="trunc" style="max-width:140px;font-weight:500">${esc(m.name)}</td><td class="mono" style="font-size:.69rem">${fmtD(m.planned_date)}</td><td>${m.is_stage_gate?'<span class="badge bg-purple">Gate</span>':'—'}</td><td>${badge(m.status)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No milestones</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Vendor &amp; Contract Register</span>${canDo(['pmo','project_manager','finance'])?`<button class="btn btn-primary btn-sm" onclick="openVndModal('${p.$id}')">+ Add Vendor</button>`:''}</div>
+    <div class="tw"><table><thead><tr><th>Vendor</th><th>Contract</th><th>Type</th><th>Value</th><th>Status</th><th>Performance</th></tr></thead><tbody>
+    ${vn.documents.map(v=>`<tr><td style="font-weight:600">${esc(v.vendor_name)}</td><td class="mono">${esc(v.contract_reference||'—')}</td><td style="font-size:.72rem">${esc((v.contract_type||'').replace(/_/g,' '))}</td><td style="font-size:.72rem">${fmtM(v.contract_value)}</td><td>${badge(v.status)}</td><td>${v.performance_rating?'★'.repeat(v.performance_rating)+'☆'.repeat(5-v.performance_rating):'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="te">No vendors</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+async function tExec(p,el){
+  const {documents:tasks}=await listDocs('tasks',[Query.equal('project_id',p.$id),Query.orderAsc('wbs_code')]);
+  el.innerHTML=`
+  <div class="card">
+    <div class="ch"><span class="ct">Task &amp; Work Package Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openTskModal('${p.$id}')">+ Add Task</button>`:''}</div>
+    <div class="tw"><table><thead><tr><th>WBS</th><th>Task</th><th>Phase</th><th>Assigned To</th><th>Due</th><th>Progress</th><th>Status</th></tr></thead><tbody>
+    ${tasks.map(t=>`<tr><td class="mono">${esc(t.wbs_code||'—')}</td><td class="trunc" style="max-width:180px;font-weight:500">${esc(t.name)}</td><td style="font-size:.7rem">${esc(t.phase||'—')}</td><td style="font-size:.72rem">${esc(t.assigned_to_name||'—')}</td><td class="mono" style="font-size:.68rem">${fmtD(t.planned_end_date)}</td>
+      <td style="min-width:70px"><div class="pbar" style="margin-bottom:2px"><div class="pfill ${t.completion_pct>=80?'g':t.completion_pct<30?'r':''}" style="width:${t.completion_pct||0}%"></div></div><span style="font-size:.64rem;color:var(--text3)">${t.completion_pct||0}%</span></td>
+      <td>${badge(t.status)}</td></tr>`).join('')||'<tr><td colspan="7" class="te">No tasks</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+async function tMon(p,el){
+  const [cr,is,rk]=await Promise.all([
+    listDocs('change_requests',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')]),
+    listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')]),
+    listDocs('risks',[Query.equal('project_id',p.$id),Query.orderDesc('risk_score')])
+  ]);
+  const age=c=>Math.round((Date.now()-new Date(c.$createdAt))/86400000);
+  el.innerHTML=`
+  <div class="card" style="margin-bottom:11px">
+    <div class="ch"><span class="ct">Change Control Register (CCB Workflow)</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openCRModal('${p.$id}')">+ Raise CR</button>`:''}</div>
+    <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Days Δ</th><th>Age</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${cr.documents.map(c=>`<tr>
+      <td class="mono" style="color:var(--blue)">${esc(c.cr_number)}</td>
+      <td class="trunc" style="max-width:150px;font-weight:500">${esc(c.title)}</td>
+      <td>${badge(c.change_type)}</td>
+      <td style="font-size:.72rem;${c.cost_impact>0?'color:var(--red)':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</td>
+      <td style="text-align:center;font-size:.72rem;${c.schedule_impact_days>0?'color:var(--amber)':''}">${c.schedule_impact_days||0}d</td>
+      <td class="mono" style="font-size:.68rem;${age(c)>14?'color:var(--red)':''}">${age(c)}d</td>
+      <td>${badge(c.status)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewCR('${c.$id}')">View</button>
+        ${canDo(['pmo'])&&c.status==='submitted'?`<button class="btn btn-sm btn-primary" style="margin-left:3px" onclick="advCR('${c.$id}','ccb_review')">→ CCB</button>`:''}
+        ${canDo(['pmo'])&&c.status==='ccb_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprCR('${c.$id}')">Approve</button>`:''}
+      </td></tr>`).join('')||'<tr><td colspan="8" class="te">No change requests</td></tr>'}
+    </tbody></table></div>
+  </div>
+  <div class="g2" style="gap:11px">
+    <div class="card">
+      <div class="ch"><span class="ct">Issue Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log</button>`:''}</div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Issue</th><th>Severity</th><th>Status</th></tr></thead><tbody>
+      ${is.documents.map(i=>`<tr><td class="mono">${esc(i.issue_id||'—')}</td><td class="trunc" style="max-width:150px;font-weight:500">${esc(i.title)}</td><td>${badge(i.severity)}</td><td>${badge(i.status)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No issues</td></tr>'}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Active Risks</span></div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Risk</th><th>Score</th><th>Response</th></tr></thead><tbody>
+      ${rk.documents.filter(r=>!['closed','accepted'].includes(r.status)).map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:140px;font-weight:500">${esc(r.title)}</td><td>${rsBadge(r.risk_score)}</td><td style="font-size:.7rem">${esc(r.response_strategy||'—')}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No active risks</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+
+async function tClose(p,el){
+  const {documents:ll}=await listDocs('lessons_learned',[Query.equal('project_id',p.$id)]);
+  const items=['All deliverables accepted by client','UAT completed and signed off','All change requests resolved','Risk register reviewed and closed','Issue register cleared','Contract(s) formally closed','Financial reconciliation completed','Lessons learned register completed','Project Closure Report approved','Benefits realisation handover done','PMO final approval received','Sponsor sign-off obtained'];
+  el.innerHTML=`
+  <div class="g2" style="gap:11px;margin-bottom:11px">
+    <div class="card">
+      <div class="ch"><span class="ct">Project Closure Checklist</span></div>
+      <div class="cb">${items.map(i=>`<div class="fchk" style="padding:6px 0;border-bottom:1px solid var(--border)"><input type="checkbox" style="accent-color:var(--green)"><label style="font-size:.78rem">${i}</label></div>`).join('')}
+        ${canDo(['pmo','project_sponsor'])&&p.status!=='closed'?`<div style="margin-top:11px"><button class="btn btn-success btn-sm" onclick="closeProj('${p.$id}')">Mark Project Closed</button></div>`:''}
+        ${p.status==='closed'?`<div style="margin-top:11px"><span class="badge bg-green" style="font-size:.76rem;padding:5px 11px">✓ Project Formally Closed</span></div>`:''}
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Closure Artefacts</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','closing')">+ Add</button>`:''}</div>
+      <div class="cb" style="padding:9px"><div class="ag">
+        ${['closure_report','lessons_learned_register'].map(t=>`<div class="acard" onclick="openArtModal('${p.$id}','closing','${t}')"><div class="at">${t.replace(/_/g,' ')}</div><div class="an" style="font-size:.74rem">${t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div><div class="af"><span style="font-size:.68rem;color:var(--text3)">Create</span><span class="badge bg-gray">Pending</span></div></div>`).join('')}
+      </div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Lessons Learned Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openLLModal('${p.$id}')">+ Add Lesson</button>`:''}</div>
+    <div class="tw"><table><thead><tr><th>Category</th><th>Phase</th><th>Title</th><th>Impact</th><th>Submitted By</th></tr></thead><tbody>
+    ${ll.map(l=>`<tr><td style="font-size:.72rem">${esc(l.category)}</td><td style="font-size:.7rem">${esc(l.phase||'—')}</td><td class="trunc" style="max-width:200px;font-weight:500">${esc(l.title)}</td><td>${badge(l.impact||'neutral')}</td><td style="font-size:.7rem">${esc(l.submitted_by_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No lessons learned yet</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+// ─── GLOBAL VIEWS ─────────────────────────────────────────────────────────
+async function risks(){
+  $('tt').textContent='Risk Register';
+  const {documents:all}=await listDocs('risks',[Query.orderDesc('risk_score')]);
+  $('mc').innerHTML=`
+  <div class="kg" style="margin-bottom:12px">
+    <div class="kc kr"><div class="kl">Critical (≥15)</div><div class="kv r">${all.filter(r=>r.risk_score>=15&&!['closed','accepted'].includes(r.status)).length}</div></div>
+    <div class="kc ka"><div class="kl">High (9–14)</div><div class="kv a">${all.filter(r=>r.risk_score>=9&&r.risk_score<15&&!['closed','accepted'].includes(r.status)).length}</div></div>
+    <div class="kc kb"><div class="kl">Total Active</div><div class="kv b">${all.filter(r=>!['closed','accepted'].includes(r.status)).length}</div></div>
+    <div class="kc kg2"><div class="kl">Closed / Accepted</div><div class="kv g">${all.filter(r=>['closed','accepted'].includes(r.status)).length}</div></div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">All Project Risks</span></div>
+    <div class="cb" style="padding:9px">
+      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search risks…" oninput="ft(this.value,'rktb')"></div></div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Title</th><th>Probability</th><th>Impact</th><th>Score</th><th>Response</th><th>Status</th><th>Owner</th></tr></thead>
+      <tbody id="rktb">${all.map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:170px;font-weight:500">${esc(r.title)}</td><td style="font-size:.72rem;text-transform:capitalize">${(r.probability||'').replace(/_/g,' ')}</td><td style="font-size:.72rem;text-transform:capitalize">${r.impact||'—'}</td><td>${rsBadge(r.risk_score)}</td><td style="font-size:.7rem">${r.response_strategy||'—'}</td><td>${badge(r.status)}</td><td style="font-size:.7rem">${esc(r.owner_name||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="te">No risks</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+
+async function changes(){
+  $('tt').textContent='Change Requests';
+  const {documents:all}=await listDocs('change_requests',[Query.orderDesc('$createdAt')]);
+  const age=c=>Math.round((Date.now()-new Date(c.$createdAt))/86400000);
+  $('mc').innerHTML=`
+  <div class="card">
+    <div class="ch"><span class="ct">Change Request Register — CCB Workflow</span></div>
+    <div class="cb" style="padding:9px">
+      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search…" oninput="ft(this.value,'crtb')"></div></div>
+      <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Days Δ</th><th>Status</th><th>Age</th><th>Actions</th></tr></thead>
+      <tbody id="crtb">${all.map(c=>`<tr>
+        <td class="mono" style="color:var(--blue);cursor:pointer" onclick="viewCR('${c.$id}')">${esc(c.cr_number)}</td>
+        <td class="trunc" style="max-width:160px;font-weight:500">${esc(c.title)}</td>
+        <td>${badge(c.change_type)}</td>
+        <td style="font-size:.72rem;${c.cost_impact>0?'color:var(--red)':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</td>
+        <td style="text-align:center;font-size:.72rem;${c.schedule_impact_days>0?'color:var(--amber)':''}">${c.schedule_impact_days||0}d</td>
+        <td>${badge(c.status)}</td>
+        <td class="mono" style="font-size:.68rem;${age(c)>14?'color:var(--red)':''}">${age(c)}d</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewCR('${c.$id}')">View</button>
+          ${canDo(['pmo'])&&c.status==='submitted'?`<button class="btn btn-sm btn-primary" style="margin-left:3px" onclick="advCR('${c.$id}','ccb_review')">→ CCB</button>`:''}
+          ${canDo(['pmo'])&&c.status==='ccb_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprCR('${c.$id}')">Approve</button>`:''}
+        </td></tr>`).join('')||'<tr><td colspan="8" class="te">No change requests</td></tr>'}
+      </tbody></table></div>
+    </div>
+  </div>`;
+}
+
+async function milestones(){
+  $('tt').textContent='Milestones & Stage Gates';
+  const {documents:data}=await listDocs('milestones',[Query.orderAsc('planned_date')]);
+  $('mc').innerHTML=`
+  <div class="card">
+    <div class="ch"><span class="ct">All Milestones</span></div>
+    <div class="tw"><table><thead><tr><th>Milestone</th><th>Planned</th><th>Actual</th><th>Gate?</th><th>Status</th><th>Gate Outcome</th></tr></thead><tbody>
+    ${data.map(m=>`<tr><td style="font-weight:500">${esc(m.name)}</td><td class="mono" style="font-size:.68rem">${fmtD(m.planned_date)}</td><td class="mono" style="font-size:.68rem">${fmtD(m.actual_date)}</td><td>${m.is_stage_gate?'<span class="badge bg-purple">Stage Gate</span>':'—'}</td><td>${badge(m.status)}</td><td>${m.gate_outcome?badge(m.gate_outcome):'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="te">No milestones</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+async function artefacts(){
+  $('tt').textContent='Artefact Library';
+  const {documents:data}=await listDocs('artefacts',[Query.orderDesc('$createdAt')]);
+  $('mc').innerHTML=`
+  <div class="card">
+    <div class="ch"><span class="ct">All Artefacts (Version-Controlled)</span><span style="font-size:.72rem;color:var(--text3)">${data.length} total</span></div>
+    <div class="tw"><table><thead><tr><th>Type</th><th>Title</th><th>Version</th><th>Process Group</th><th>Status</th><th>Approved</th><th>Actions</th></tr></thead><tbody>
+    ${data.map(a=>`<tr><td><span class="badge bg-gray" style="font-size:.58rem">${esc((a.artefact_type||'').replace(/_/g,' '))}</span></td><td style="font-weight:500;max-width:180px" class="trunc">${esc(a.title)}</td><td class="mono">${esc(a.version)}</td><td style="font-size:.7rem">${esc(a.process_group||'—')}</td><td>${badge(a.status)}</td><td style="font-size:.7rem">${a.approved_at?fmtD(a.approved_at):'Pending'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewArt('${a.$id}')">View</button>
+        ${canDo(['pmo'])&&a.status==='in_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprArt('${a.$id}')">Approve</button>`:''}
+      </td></tr>`).join('')||'<tr><td colspan="7" class="te">No artefacts</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+async function audit(){
+  if(!canDo(['system_admin','pmo','qa_compliance'])){toast('Access denied','error');return;}
+  $('tt').textContent='Audit Log';$('ts').textContent='Immutable — permanently recorded';
+  const {documents:data}=await listDocs('audit_logs',[Query.orderDesc('$createdAt')]);
+  $('mc').innerHTML=`
+  <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:8px 12px;margin-bottom:11px;font-size:.76rem;color:#92400E">
+    <strong>⚖ Immutable Audit Trail</strong> — Create-only permissions. No updates or deletions permitted on this collection.
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">System Audit Log (Last 200)</span></div>
+    <div class="tw"><table><thead><tr><th>Timestamp</th><th>User</th><th>Role</th><th>Action</th><th>Entity</th><th>Description</th></tr></thead><tbody>
+    ${data.map(l=>`<tr><td class="mono" style="font-size:.67rem;white-space:nowrap">${new Date(l.$createdAt).toLocaleString('en-SG')}</td><td style="font-size:.72rem">${esc(l.user_email||'—')}</td><td><span class="badge bg-gray">${esc(l.user_role||'—')}</span></td><td><span class="badge bg-blue">${esc(l.action)}</span></td><td style="font-size:.7rem">${esc(l.entity_type||'—')}</td><td style="font-size:.72rem;max-width:200px" class="trunc">${esc(l.description||'—')}</td></tr>`).join('')||'<tr><td colspan="6" class="te">No audit entries</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+async function admin(){
+  if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
+  $('tt').textContent='User Management';
+  const {documents:users}=await listDocs('profiles',[Query.orderAsc('full_name')]);
+  $('mc').innerHTML=`
+  <div class="card">
+    <div class="ch"><span class="ct">Users &amp; Roles</span><span style="font-size:.72rem;color:var(--text3)">${users.length} users</span></div>
+    <div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Organisation</th><th>Active</th><th>Actions</th></tr></thead><tbody>
+    ${users.map(u=>`<tr><td style="font-weight:600">${esc(u.full_name)}</td><td style="font-size:.72rem">${esc(u.email)}</td><td><span class="badge bg-blue">${roleLbl(u.role)}</span></td><td style="font-size:.72rem">${esc(u.department||'—')}</td><td style="font-size:.72rem">${esc(u.organisation||'—')}</td><td>${u.is_active?'<span class="badge bg-green">Active</span>':'<span class="badge bg-red">Inactive</span>'}</td><td><button class="btn btn-ghost btn-sm" onclick="editUserModal('${u.$id}','${u.role}')">Edit Role</button></td></tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+}
+
+// ─── MODAL FORMS ─────────────────────────────────────────────────────────
+function openArtModal(pid,phase,pre=''){
+  om('New Artefact',`
+  <div class="fgrid">
+    <div class="fg s2"><label>Type <span class="req">*</span></label><select id="af-t">${['business_case','benefits_management_plan','project_charter','stakeholder_register','raid_log','scope_statement','wbs','wbs_dictionary','schedule_baseline','cost_baseline','quality_plan','resource_plan','raci_matrix','communication_plan','risk_management_plan','procurement_plan','change_management_plan','requirements_register','traceability_matrix','project_management_plan','closure_report','lessons_learned_register','other'].map(t=>`<option value="${t}" ${t===pre?'selected':''}>${t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</option>`).join('')}</select></div>
+    <div class="fg s2"><label>Title <span class="req">*</span></label><input id="af-n" required></div>
+    <div class="fg s2"><label>Description / Summary</label><textarea id="af-d" rows="3"></textarea></div>
+    <div class="fg"><label>Version</label><input id="af-v" value="1.0"></div>
+    <div class="fg"><label>Process Group</label><select id="af-p"><option value="${phase}">${phase.charAt(0).toUpperCase()+phase.slice(1)}</option><option value="initiation">Initiation</option><option value="planning">Planning</option><option value="executing">Executing</option><option value="monitoring">Monitoring</option><option value="closing">Closing</option></select></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitArt('${pid}')">Create Artefact</button>`);
+}
+async function submitArt(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('af-t')||!v('af-n')){toast('Type and title required','error');return;}
+  try{
+    await createDoc('artefacts',{project_id:pid,artefact_type:v('af-t'),title:v('af-n'),description:v('af-d'),version:v('af-v')||'1.0',process_group:v('af-p'),status:'draft',owner_id:S.profile.$id,owner_name:S.profile.full_name,created_by:S.profile.$id});
+    toast('Artefact created!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);else await artefacts();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+async function viewArt(id){
+  const a=await getDoc('artefacts',id);
+  const canAppr=canDo(['pmo','project_sponsor'])&&a.status==='in_review';
+  const canSub=canDo(['pmo','project_manager'])&&a.status==='draft';
+  om(a.title,`
+  <div class="dsec">
+    <div class="dr"><span class="dl">Type</span><span class="dv"><span class="badge bg-blue">${esc((a.artefact_type||'').replace(/_/g,' '))}</span></span></div>
+    <div class="dr"><span class="dl">Version</span><span class="dv mono">v${esc(a.version)}</span></div>
+    <div class="dr"><span class="dl">Status</span><span class="dv">${badge(a.status)}</span></div>
+    <div class="dr"><span class="dl">Process Group</span><span class="dv">${esc(a.process_group||'—')}</span></div>
+    <div class="dr"><span class="dl">Owner</span><span class="dv">${esc(a.owner_name||'—')}</span></div>
+    <div class="dr"><span class="dl">Approved</span><span class="dv">${a.approved_at?fmtD(a.approved_at):'Pending'}</span></div>
+    <div class="dr"><span class="dl">Created</span><span class="dv">${fmtD(a.$createdAt)}</span></div>
+  </div>
+  ${a.description?`<div class="fsec"><h4>Description</h4><p style="font-size:.78rem;line-height:1.6">${esc(a.description)}</p></div>`:''}
+  ${canAppr?`<div class="fsec"><h4>Approval Notes</h4><div class="fg"><textarea id="apn" rows="2"></textarea></div></div>`:''}`,
+  `<button class="btn btn-secondary" onclick="cm()">Close</button>
+   ${canSub?`<button class="btn btn-primary" onclick="subArt('${a.$id}')">Submit for Approval</button>`:''}
+   ${canAppr?`<button class="btn btn-success" onclick="apprArt('${a.$id}')">Approve</button>`:''}`,
+  {sub:`${(a.artefact_type||'').replace(/_/g,' ')} · v${a.version}`});
+}
+async function subArt(id){await updateDoc('artefacts',id,{status:'in_review'});toast('Submitted for approval','success');cm();if(S.proj)renderTab(S.ptab,S.proj);else await artefacts();}
+async function apprArt(id){
+  await updateDoc('artefacts',id,{status:'approved',approved_by:S.profile.$id,approved_at:new Date().toISOString(),approval_notes:$('apn')?.value||''});
+  await auditLog('ARTEFACT_APPROVED','artefact',id,'Artefact approved');
+  toast('Approved!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);else await artefacts();
+}
+
+function openRskModal(pid){
+  om('New Risk',`
+  <div class="fgrid">
+    <div class="fg s2"><label>Title <span class="req">*</span></label><input id="rk-t" required></div>
+    <div class="fg s2"><label>Description <span class="req">*</span></label><textarea id="rk-d" rows="3" required></textarea></div>
+    <div class="fg"><label>Category</label><select id="rk-c"><option value="">Select…</option><option>Technical</option><option>Schedule</option><option>Cost</option><option>Resource</option><option>Regulatory</option><option>Vendor</option><option>Healthcare Data</option><option>Integration</option></select></div>
+    <div class="fg"><label>Response Strategy</label><select id="rk-rs"><option value="mitigate">Mitigate</option><option value="avoid">Avoid</option><option value="transfer">Transfer</option><option value="accept">Accept</option><option value="escalate">Escalate</option></select></div>
+    <div class="fg"><label>Probability <span class="req">*</span></label><select id="rk-p"><option value="very_low">Very Low (1)</option><option value="low">Low (2)</option><option value="medium" selected>Medium (3)</option><option value="high">High (4)</option><option value="very_high">Very High (5)</option></select></div>
+    <div class="fg"><label>Impact <span class="req">*</span></label><select id="rk-i"><option value="negligible">Negligible (1)</option><option value="minor">Minor (2)</option><option value="moderate" selected>Moderate (3)</option><option value="major">Major (4)</option><option value="critical">Critical (5)</option></select></div>
+    <div class="fg s2"><label>Mitigation Strategy</label><textarea id="rk-m" rows="2"></textarea></div>
+    <div class="fg"><label>Review Date</label><input id="rk-rd" type="date"></div>
+  </div>
+  <div class="fsec"><div class="fchk"><input type="checkbox" id="rk-reg"><label for="rk-reg">Healthcare / Regulatory risk</label></div></div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitRsk('${pid}')">Add Risk</button>`);
+}
+async function submitRsk(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('rk-t')||!v('rk-d')){toast('Title and description required','error');return;}
+  const pMap={very_low:1,low:2,medium:3,high:4,very_high:5};
+  const iMap={negligible:1,minor:2,moderate:3,major:4,critical:5};
+  const prob=v('rk-p'),imp=v('rk-i');
+  const score=(pMap[prob]||3)*(iMap[imp]||3);
+  const rating=score>=15?'Critical':score>=9?'High':score>=4?'Medium':'Low';
+  try{
+    await createDoc('risks',{project_id:pid,risk_id:genId('RSK'),title:v('rk-t'),description:v('rk-d'),category:v('rk-c'),probability:prob,impact:imp,risk_score:score,risk_rating:rating,response_strategy:v('rk-rs'),mitigation_strategy:v('rk-m'),review_date:v('rk-rd')||'',is_healthcare_regulatory:$('rk-reg').checked,status:'identified',raised_by:S.profile.$id,owner_id:S.profile.$id,owner_name:S.profile.full_name});
+    toast('Risk added!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);else await risks();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function openIssModal(pid){
+  om('Log Issue / RAID Item',`
+  <div class="fgrid">
+    <div class="fg s2"><label>Title <span class="req">*</span></label><input id="is-t" required></div>
+    <div class="fg s2"><label>Description <span class="req">*</span></label><textarea id="is-d" rows="3" required></textarea></div>
+    <div class="fg"><label>Category</label><select id="is-c"><option value="">Select…</option><option>Technical</option><option>Process</option><option>Resource</option><option>Vendor</option><option>Scope</option><option>Regulatory</option><option>Assumption</option><option>Dependency</option></select></div>
+    <div class="fg"><label>Severity</label><select id="is-s"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+    <div class="fg s2"><label>Target Resolution Date</label><input id="is-dt" type="date"></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitIss('${pid}')">Log Issue</button>`);
+}
+async function submitIss(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('is-t')||!v('is-d')){toast('Title and description required','error');return;}
+  try{
+    await createDoc('issues',{project_id:pid,issue_id:genId('ISS'),title:v('is-t'),description:v('is-d'),category:v('is-c'),severity:v('is-s'),target_resolution_date:v('is-dt')||'',status:'open',raised_by:S.profile.$id});
+    toast('Issue logged!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function openCRModal(pid){
+  om('Raise Change Request',`
+  <div style="background:var(--amber-bg);border-left:3px solid var(--amber);padding:8px 11px;border-radius:4px;font-size:.74rem;color:#92400E;margin-bottom:12px">All changes require formal CCB review. Approved changes update the project baseline.</div>
+  <div class="fgrid">
+    <div class="fg s2"><label>CR Title <span class="req">*</span></label><input id="cr-t" required></div>
+    <div class="fg s2"><label>Description <span class="req">*</span></label><textarea id="cr-d" rows="3" required></textarea></div>
+    <div class="fg s2"><label>Justification <span class="req">*</span></label><textarea id="cr-j" rows="2" required></textarea></div>
+    <div class="fg"><label>Change Type</label><select id="cr-tp"><option value="scope">Scope</option><option value="schedule">Schedule</option><option value="cost">Cost</option><option value="quality">Quality</option><option value="resource">Resource</option><option value="other">Other</option></select></div>
+    <div class="fg"><label>Priority</label><select id="cr-pr"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
+    <div class="fg"><label>Schedule Impact (days, + = delay)</label><input id="cr-sd" type="number" value="0"></div>
+    <div class="fg"><label>Cost Impact (S$, + = increase)</label><input id="cr-ci" type="number" value="0"></div>
+    <div class="fg s2"><label>Scope Impact</label><textarea id="cr-si" rows="2"></textarea></div>
+    <div class="fg s2"><label>Risk Impact</label><textarea id="cr-ri" rows="2"></textarea></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitCR('${pid}')">Submit CR</button>`,
+  {lg:true,sub:'Formal Change Control Board (CCB) Process'});
+}
+async function submitCR(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('cr-t')||!v('cr-d')||!v('cr-j')){toast('Fill mandatory fields','error');return;}
+  try{
+    await createDoc('change_requests',{project_id:pid,cr_number:genId('CR'),title:v('cr-t'),description:v('cr-d'),justification:v('cr-j'),change_type:v('cr-tp'),priority:v('cr-pr'),schedule_impact_days:parseInt(v('cr-sd'))||0,cost_impact:parseFloat(v('cr-ci'))||0,scope_impact:v('cr-si'),risk_impact:v('cr-ri'),status:'submitted',requestor_id:S.profile.$id,requestor_name:S.profile.full_name});
+    await auditLog('CR_SUBMITTED','change_request',null,`CR raised: ${v('cr-t')}`,pid);
+    toast('CR submitted for CCB!','success');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+async function viewCR(id){
+  const c=await getDoc('change_requests',id);
+  const canAdv=canDo(['pmo'])&&c.status==='submitted';
+  const canAppr=canDo(['pmo'])&&c.status==='ccb_review';
+  const canRej=canDo(['pmo'])&&['submitted','ccb_review'].includes(c.status);
+  om(`CR: ${c.cr_number}`,`
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+    <div>
+      <div class="dsec"><h4>Details</h4>
+        <div class="dr"><span class="dl">CR #</span><span class="dv mono">${esc(c.cr_number)}</span></div>
+        <div class="dr"><span class="dl">Type</span><span class="dv">${badge(c.change_type)}</span></div>
+        <div class="dr"><span class="dl">Priority</span><span class="dv">${badge(c.priority)}</span></div>
+        <div class="dr"><span class="dl">Status</span><span class="dv">${badge(c.status)}</span></div>
+        <div class="dr"><span class="dl">Requestor</span><span class="dv">${esc(c.requestor_name||'—')}</span></div>
+        <div class="dr"><span class="dl">Schedule Δ</span><span class="dv" style="${c.schedule_impact_days>0?'color:var(--amber);font-weight:600':''}">${c.schedule_impact_days>0?'+':''}${c.schedule_impact_days||0} days</span></div>
+        <div class="dr"><span class="dl">Cost Δ</span><span class="dv" style="${c.cost_impact>0?'color:var(--red);font-weight:600':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</span></div>
+      </div>
+      ${c.ccb_notes?`<div class="dsec"><h4>CCB Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(c.ccb_notes)}</p></div>`:''}
+    </div>
+    <div>
+      <div class="dsec"><h4>Description</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.description)}</p></div>
+      <div class="dsec"><h4>Justification</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.justification)}</p></div>
+      ${c.scope_impact?`<div class="dsec"><h4>Scope Impact</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.scope_impact)}</p></div>`:''}
+      ${c.risk_impact?`<div class="dsec"><h4>Risk Impact</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.risk_impact)}</p></div>`:''}
+    </div>
+  </div>
+  ${(canAppr||canRej)?`<div class="fsec"><h4>CCB Decision</h4><div class="fgrid"><div class="fg"><label>CCB Meeting Date</label><input id="ccbd" type="date" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label>CCB Notes / Rationale</label><textarea id="ccbn" rows="2"></textarea></div></div></div>`:''}`,
+  `<button class="btn btn-secondary" onclick="cm()">Close</button>
+   ${canRej?`<button class="btn btn-danger" onclick="rejCR('${c.$id}')">Reject</button>`:''}
+   ${canAdv?`<button class="btn btn-warning" onclick="advCR('${c.$id}','ccb_review')">→ Send to CCB</button>`:''}
+   ${canAppr?`<button class="btn btn-success" onclick="apprCR('${c.$id}')">CCB Approve</button>`:''}`,
+  {lg:true,sub:c.title});
+}
+async function advCR(id,status){
+  await updateDoc('change_requests',id,{status});toast(`CR moved to ${status.replace(/_/g,' ')}`,'info');
+  cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+}
+async function apprCR(id){
+  const n=$('ccbn')?.value||'',dt=$('ccbd')?.value||'';
+  await updateDoc('change_requests',id,{status:'approved',ccb_notes:n,ccb_meeting_date:dt,approved_by:S.profile.$id,approved_at:new Date().toISOString()});
+  await auditLog('CR_APPROVED','change_request',id,'Approved by CCB');
+  toast('CR approved by CCB!','success');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+}
+async function rejCR(id){
+  const n=$('ccbn')?.value||'';if(!n){toast('Provide rejection reason in CCB notes','error');return;}
+  await updateDoc('change_requests',id,{status:'rejected',ccb_notes:n,approved_by:S.profile.$id,approved_at:new Date().toISOString()});
+  toast('CR rejected','info');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+}
+
+function openMsModal(pid){
+  om('Add Milestone / Stage Gate',`
+  <div class="fgrid">
+    <div class="fg s2"><label>Name <span class="req">*</span></label><input id="ms-n" required></div>
+    <div class="fg s2"><label>Description</label><textarea id="ms-d" rows="2"></textarea></div>
+    <div class="fg"><label>Phase</label><select id="ms-ph"><option value="">Select…</option><option>Initiation</option><option>Planning</option><option>Execution</option><option>Testing</option><option>UAT</option><option>Go-Live</option><option>Closure</option></select></div>
+    <div class="fg"><label>Planned Date <span class="req">*</span></label><input id="ms-dt" type="date" required></div>
+    <div class="fg"><label>Status</label><select id="ms-s"><option value="upcoming" selected>Upcoming</option><option value="at_risk">At Risk</option><option value="achieved">Achieved</option><option value="missed">Missed</option></select></div>
+  </div>
+  <div class="fsec"><div class="fchk"><input type="checkbox" id="ms-g"><label for="ms-g">Formal Stage Gate (requires PMO review)</label></div>
+  <div class="fg" style="margin-top:9px"><label>Gate Criteria</label><textarea id="ms-gc" rows="2"></textarea></div></div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitMs('${pid}')">Add Milestone</button>`);
+}
+async function submitMs(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('ms-n')||!v('ms-dt')){toast('Name and date required','error');return;}
+  try{
+    await createDoc('milestones',{project_id:pid,name:v('ms-n'),description:v('ms-d'),phase:v('ms-ph'),planned_date:v('ms-dt'),status:v('ms-s'),is_stage_gate:$('ms-g').checked,gate_criteria:v('ms-gc')});
+    toast('Milestone added!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);else await milestones();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function openVndModal(pid){
+  om('Add Vendor / Contract',`
+  <div class="fgrid">
+    <div class="fg s2"><label>Vendor Name <span class="req">*</span></label><input id="vn-n" required></div>
+    <div class="fg"><label>Contract Reference</label><input id="vn-r"></div>
+    <div class="fg"><label>Contract Type</label><select id="vn-t"><option value="fixed_price">Fixed Price</option><option value="time_material">Time & Material</option><option value="milestone_based">Milestone-Based</option><option value="retainer">Retainer</option></select></div>
+    <div class="fg s2"><label>Scope of Work</label><textarea id="vn-s" rows="2"></textarea></div>
+    <div class="fg"><label>Contract Value (S$)</label><input id="vn-v" type="number" min="0"></div>
+    <div class="fg"><label>Status</label><select id="vn-st"><option value="pending">Pending</option><option value="active" selected>Active</option><option value="closed">Closed</option></select></div>
+    <div class="fg"><label>Start Date</label><input id="vn-sd" type="date"></div>
+    <div class="fg"><label>End Date</label><input id="vn-ed" type="date"></div>
+    <div class="fg"><label>Primary Contact</label><input id="vn-c"></div>
+    <div class="fg"><label>Contact Email</label><input id="vn-e" type="email"></div>
+    <div class="fg"><label>Performance (1–5)</label><select id="vn-pr"><option value="0">Not rated</option><option value="1">1 — Poor</option><option value="2">2 — Below Average</option><option value="3">3 — Satisfactory</option><option value="4">4 — Good</option><option value="5">5 — Excellent</option></select></div>
+    <div class="fg"><label>Deliverables Status</label><select id="vn-ds"><option value="on_track" selected>On Track</option><option value="at_risk">At Risk</option><option value="delayed">Delayed</option><option value="completed">Completed</option></select></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitVnd('${pid}')">Add Vendor</button>`,{lg:true});
+}
+async function submitVnd(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('vn-n')){toast('Vendor name required','error');return;}
+  try{
+    await createDoc('vendors',{project_id:pid,vendor_name:v('vn-n'),contract_reference:v('vn-r'),contract_type:v('vn-t'),scope_of_work:v('vn-s'),contract_value:parseFloat(v('vn-v'))||0,status:v('vn-st'),start_date:v('vn-sd')||'',end_date:v('vn-ed')||'',primary_contact:v('vn-c'),contact_email:v('vn-e'),performance_rating:parseInt(v('vn-pr'))||0,deliverables_status:v('vn-ds')});
+    toast('Vendor added!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function openTskModal(pid){
+  om('Add Task / Work Package',`
+  <div class="fgrid">
+    <div class="fg"><label>WBS Code</label><input id="tk-w" placeholder="1.2.3"></div>
+    <div class="fg"><label>Phase</label><input id="tk-ph" placeholder="Design, Development…"></div>
+    <div class="fg s2"><label>Task Name <span class="req">*</span></label><input id="tk-n" required></div>
+    <div class="fg s2"><label>Description</label><textarea id="tk-d" rows="2"></textarea></div>
+    <div class="fg"><label>Priority</label><select id="tk-p"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+    <div class="fg"><label>Status</label><select id="tk-s"><option value="not_started" selected>Not Started</option><option value="in_progress">In Progress</option><option value="completed">Completed</option><option value="blocked">Blocked</option></select></div>
+    <div class="fg"><label>Planned Start</label><input id="tk-ps" type="date"></div>
+    <div class="fg"><label>Planned End</label><input id="tk-pe" type="date"></div>
+    <div class="fg"><label>Estimated Hours</label><input id="tk-h" type="number" min="0" value="0"></div>
+    <div class="fg"><label>Completion %</label><input id="tk-pct" type="number" min="0" max="100" value="0"></div>
+    <div class="fg s2"><label>Deliverable</label><input id="tk-del" placeholder="What does this task produce?"></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitTsk('${pid}')">Add Task</button>`,{lg:true});
+}
+async function submitTsk(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('tk-n')){toast('Task name required','error');return;}
+  try{
+    await createDoc('tasks',{project_id:pid,wbs_code:v('tk-w'),phase:v('tk-ph'),name:v('tk-n'),description:v('tk-d'),priority:v('tk-p'),status:v('tk-s'),planned_start_date:v('tk-ps')||'',planned_end_date:v('tk-pe')||'',estimated_hours:parseFloat(v('tk-h'))||0,completion_pct:parseInt(v('tk-pct'))||0,deliverable:v('tk-del'),assigned_to:S.profile.$id,assigned_to_name:S.profile.full_name});
+    toast('Task added!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function openStakeModal(pid){
+  om('Add Stakeholder',`
+  <div class="fgrid">
+    <div class="fg"><label>Full Name <span class="req">*</span></label><input id="sk-n" required></div>
+    <div class="fg"><label>Organisation</label><input id="sk-o" placeholder="SGH, MOH…"></div>
+    <div class="fg"><label>Role / Title <span class="req">*</span></label><input id="sk-r" required></div>
+    <div class="fg"><label>Email</label><input id="sk-e" type="email"></div>
+    <div class="fg"><label>Influence Level</label><select id="sk-inf"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+    <div class="fg"><label>Interest Level</label><select id="sk-int"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select></div>
+    <div class="fg"><label>Current Engagement</label><select id="sk-ce"><option value="unaware">Unaware</option><option value="resistant">Resistant</option><option value="neutral" selected>Neutral</option><option value="supportive">Supportive</option><option value="leading">Leading</option></select></div>
+    <div class="fg"><label>Desired Engagement</label><select id="sk-de"><option value="neutral">Neutral</option><option value="supportive" selected>Supportive</option><option value="leading">Leading</option></select></div>
+    <div class="fg s2"><label>Engagement Strategy</label><textarea id="sk-st" rows="2"></textarea></div>
+    <div class="fg s2"><label>Notes</label><textarea id="sk-nt" rows="2"></textarea></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitStake('${pid}')">Add Stakeholder</button>`,{lg:true});
+}
+async function submitStake(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('sk-n')||!v('sk-r')){toast('Name and role required','error');return;}
+  try{
+    await createDoc('stakeholders',{project_id:pid,name:v('sk-n'),organisation:v('sk-o'),role_title:v('sk-r'),email:v('sk-e'),influence_level:v('sk-inf'),interest_level:v('sk-int'),current_engagement:v('sk-ce'),desired_engagement:v('sk-de'),engagement_strategy:v('sk-st'),notes:v('sk-nt')});
+    toast('Stakeholder added!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function openLLModal(pid){
+  om('Add Lesson Learned',`
+  <div class="fgrid">
+    <div class="fg"><label>Category <span class="req">*</span></label><select id="ll-c"><option value="">Select…</option><option>Project Management</option><option>Technical</option><option>Governance</option><option>Vendor Management</option><option>Stakeholder Engagement</option><option>Risk Management</option><option>Healthcare Compliance</option><option>Communication</option></select></div>
+    <div class="fg"><label>Phase</label><select id="ll-ph"><option value="">All phases</option><option>Initiation</option><option>Planning</option><option>Execution</option><option>Monitoring</option><option>Closing</option></select></div>
+    <div class="fg s2"><label>Title <span class="req">*</span></label><input id="ll-t" required></div>
+    <div class="fg s2"><label>Situation / Context <span class="req">*</span></label><textarea id="ll-s" rows="2" required></textarea></div>
+    <div class="fg s2"><label>Action Taken</label><textarea id="ll-a" rows="2"></textarea></div>
+    <div class="fg s2"><label>Recommendation <span class="req">*</span></label><textarea id="ll-rc" rows="2" required></textarea></div>
+    <div class="fg"><label>Impact</label><select id="ll-i"><option value="positive">Positive</option><option value="negative">Negative</option><option value="neutral">Neutral</option></select></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitLL('${pid}')">Add Lesson</button>`,{lg:true});
+}
+async function submitLL(pid){
+  const v=id=>$(id)?.value?.trim();
+  if(!v('ll-c')||!v('ll-t')||!v('ll-s')||!v('ll-rc')){toast('Fill mandatory fields','error');return;}
+  try{
+    await createDoc('lessons_learned',{project_id:pid,category:v('ll-c'),phase:v('ll-ph'),title:v('ll-t'),situation:v('ll-s'),action_taken:v('ll-a'),recommendation:v('ll-rc'),impact:v('ll-i'),submitted_by:S.profile.$id,submitted_by_name:S.profile.full_name});
+    toast('Lesson recorded!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function closeProj(id){
+  if(!canDo(['pmo','project_sponsor'])){toast('Insufficient permission','error');return;}
+  if(!confirm('Formally close this project? This creates an immutable closure record.'))return;
+  await updateDoc('projects',id,{status:'closed',actual_end_date:new Date().toISOString().split('T')[0]});
+  await auditLog('PROJECT_CLOSED','project',id,`Formally closed by ${S.profile.full_name}`,id);
+  toast('Project closed. Recorded in audit log.','success');
+  if(S.proj){S.proj.status='closed';renderTab(S.ptab,S.proj);}
+}
+async function lockBase(pid){
+  if(!canDo(['pmo'])){toast('PMO only','error');return;}
+  if(!confirm('Lock baseline? All future deviations will require an approved Change Request.'))return;
+  await updateDoc('projects',pid,{baseline_locked:true});
+  await createDoc('baselines',{project_id:pid,baseline_type:'performance_measurement',version:'1.0',description:'Initial performance measurement baseline',locked_at:new Date().toISOString(),locked_by:S.profile.$id,is_active:true});
+  await auditLog('BASELINE_LOCKED','project',pid,`Baseline locked by ${S.profile.full_name}`,pid);
+  toast('Baseline locked!','success');if(S.proj){S.proj.baseline_locked=true;renderTab(S.ptab,S.proj);}
+}
+
+async function editProjModal(id){
+  const p=await getDoc('projects',id);
+  om('Edit Project',`
+  <div class="fgrid">
+    <div class="fg s2"><label>Project Name</label><input id="ep-n" value="${esc(p.name)}"></div>
+    <div class="fg"><label>Health Status</label><select id="ep-h"><option value="green" ${p.health_status==='green'?'selected':''}>Green</option><option value="amber" ${p.health_status==='amber'?'selected':''}>Amber</option><option value="red" ${p.health_status==='red'?'selected':''}>Red</option></select></div>
+    <div class="fg"><label>Status</label><select id="ep-s"><option value="initiation" ${p.status==='initiation'?'selected':''}>Initiation</option><option value="planning" ${p.status==='planning'?'selected':''}>Planning</option><option value="executing" ${p.status==='executing'?'selected':''}>Executing</option><option value="monitoring_controlling" ${p.status==='monitoring_controlling'?'selected':''}>Monitoring & Controlling</option><option value="closing" ${p.status==='closing'?'selected':''}>Closing</option><option value="closed" ${p.status==='closed'?'selected':''}>Closed</option><option value="on_hold" ${p.status==='on_hold'?'selected':''}>On Hold</option></select></div>
+    <div class="fg"><label>Actual Start</label><input id="ep-as" type="date" value="${p.actual_start_date||''}"></div>
+    <div class="fg"><label>Approved Budget (S$)</label><input id="ep-ab" type="number" value="${p.approved_budget||''}"></div>
+    <div class="fg"><label>Actual Cost (S$)</label><input id="ep-ac" type="number" value="${p.actual_cost||0}"></div>
+    <div class="fg s2"><label>Scope Summary</label><textarea id="ep-sc" rows="2">${esc(p.scope_summary||'')}</textarea></div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="saveProj('${id}')">Save Changes</button>`);
+}
+async function saveProj(id){
+  const v=id=>$(id)?.value?.trim();
+  await updateDoc('projects',id,{name:v('ep-n'),health_status:v('ep-h'),status:v('ep-s'),actual_start_date:v('ep-as')||'',approved_budget:parseFloat(v('ep-ab'))||0,actual_cost:parseFloat(v('ep-ac'))||0,scope_summary:v('ep-sc')});
+  await auditLog('PROJECT_UPDATED','project',id,`Updated by ${S.profile.full_name}`,id);
+  toast('Project updated!','success');cm();
+  const p=await getDoc('projects',id);S.proj=p;$('tt').textContent=p.name;renderTab(S.ptab,p);
+}
+
+function editUserModal(id,role){
+  om('Edit User Role',`
+  <div class="fg"><label>New Role</label><select id="ur-r"><option value="system_admin" ${role==='system_admin'?'selected':''}>System Admin</option><option value="pmo" ${role==='pmo'?'selected':''}>PMO</option><option value="project_manager" ${role==='project_manager'?'selected':''}>Project Manager</option><option value="project_sponsor" ${role==='project_sponsor'?'selected':''}>Project Sponsor</option><option value="steering_committee" ${role==='steering_committee'?'selected':''}>Steering Committee</option><option value="vendor" ${role==='vendor'?'selected':''}>Vendor / External</option><option value="finance" ${role==='finance'?'selected':''}>Finance / Procurement</option><option value="qa_compliance" ${role==='qa_compliance'?'selected':''}>QA / Compliance</option></select></div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="saveUser('${id}')">Save Role</button>`);
+}
+async function saveUser(id){
+  await updateDoc('profiles',id,{role:$('ur-r')?.value});
+  toast('Role updated','success');cm();await admin();
+}
+
+function ft(val,tbodyId){
+  const t=val.toLowerCase();
+  document.querySelectorAll(`#${tbodyId} tr`).forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(t)?'':'none';});
+}
+
+// BOOT
+(async()=>{
+  ['li-e','li-p'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});});
+  await boot();
+})();
+</script>
+</body>
+</html>
