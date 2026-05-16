@@ -1341,14 +1341,14 @@ async function advCR(id,status){
   cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
 }
 async function apprCR(id){
-  const n=$('ccbn')?.value||'',dt=$('ccbd')?.value||'';
-  await updateDoc('change_requests',id,{status:'approved',ccb_notes:n,ccb_meeting_date:dt,approved_by:S.profile.$id,approved_at:new Date().toISOString()});
+  const dt=$('ccbd')?.value||'';
+  await updateDoc('change_requests',id,{status:'approved',ccb_meeting_date:dt,approved_by:S.profile.$id,approved_at:new Date().toISOString()});
   await auditLog('CR_APPROVED','change_request',id,'Approved by CCB');
   toast('CR approved by CCB!','success');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
 }
 async function rejCR(id){
   const n=$('ccbn')?.value||'';if(!n){toast('Provide rejection reason in CCB notes','error');return;}
-  await updateDoc('change_requests',id,{status:'rejected',ccb_notes:n,approved_by:S.profile.$id,approved_at:new Date().toISOString()});
+  await updateDoc('change_requests',id,{status:'rejected',approved_by:S.profile.$id,approved_at:new Date().toISOString()});
   toast('CR rejected','info');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
 }
 
