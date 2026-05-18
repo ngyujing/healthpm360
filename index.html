@@ -854,7 +854,7 @@ async function submitReq(){
       products_json:  JSON.stringify(getDynRows('rf-prod',['description','qty','remarks'])),
       milestones_json:JSON.stringify(getDynRows('rf-ms',['description','remarks'])),
       kpi_json:       JSON.stringify(getDynRows('rf-kpi',['description','method','threshold'])),
-      req_stakeholders_json:JSON.stringify(getDynRows('rf-stk',['institution','role','names'])),
+      stakeholders_json:JSON.stringify(getDynRows('rf-stk',['institution','role','names'])),
       maintenance_json:JSON.stringify({type:maintType,frequency:v('rf-mf'),warranty:v('rf-wy'),notes:v('rf-mn')}),
       finance_json:JSON.stringify({do_number:v('rf-do'),uat:v('rf-uat'),commission:v('rf-com'),warranty_period:v('rf-wp')})
     });
@@ -877,7 +877,7 @@ async function viewReq(id){
   const products  = v12 ? safeParse(v12.products_json)   : [];
   const mss       = v12 ? safeParse(v12.milestones_json) : [];
   const kpis      = v12 ? safeParse(v12.kpi_json)        : [];
-  const stks      = v12 ? safeParse(v12.req_stakeholders_json) : [];
+  const stks      = v12 ? safeParse(v12.stakeholders_json) : [];
   const maint     = v12 ? safeParse(v12.maintenance_json,{})   : {};
   const fin       = v12 ? safeParse(v12.finance_json,{})        : {};
 
