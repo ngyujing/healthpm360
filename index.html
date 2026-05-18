@@ -575,7 +575,9 @@ async function dashboard(){
 // ─── PROJECT REQUESTS ─────────────────────────────────────────────────────
 async function requests(){
   $('tt').textContent='Project Requests';
-  if(canDo(['pmo','project_manager','project_sponsor']))$('ta').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openReqModal()">+ New Request</button>`;
+  if(canDo(['pmo','project_manager','project_sponsor']))$('ta').innerHTML=`
+    ${S.profile?.role==='system_admin'?`<button class="btn btn-ghost btn-sm" onclick="toggleReqEditMode()" id="req-edit-btn">✏ Edit</button>`:''}
+    <button class="btn btn-primary btn-sm" onclick="openReqModal()">+ New Request</button>`;
   const {documents:data}=await listDocs('project_requests',[Query.orderDesc('$createdAt')]);
   const pending=data.filter(r=>r.status==='submitted').length;
   $('mc').innerHTML=`
@@ -593,9 +595,11 @@ async function requests(){
         <td style="font-size:.76rem">${esc(r.requestor_name)}</td><td>${badge(r.status)}</td>
         <td style="font-size:.75rem">${r.initial_budget_estimate?fmtM(r.initial_budget_estimate):'—'}</td>
         <td class="mono" style="font-size:.68rem">${fmtD(r.$createdAt)}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">View</button>
-          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprReq('${r.$id}')">Approve →</button><button class="btn btn-sm btn-danger" style="margin-left:3px" onclick="rejectReq('${r.$id}')">Reject</button>`:''}
-          ${r.status==='approved'&&r.linked_project_id?`<button class="btn btn-ghost btn-sm" style="margin-left:3px;color:var(--green)" onclick="nav('projDetail',{id:'${r.linked_project_id}'})">→ Project</button>`:''}
+        <td style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">View</button>
+          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" onclick="apprReq('${r.$id}')">Approve →</button><button class="btn btn-sm btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>`:''}
+          ${r.status==='approved'&&r.linked_project_id?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="nav('projDetail',{id:'${r.linked_project_id}'})">→ Project</button>`:''}
+          <button class="req-del-btn btn btn-danger btn-sm" style="display:none" onclick="deleteRequest('${r.$id}','${esc(r.title).replace(/'/g,"\\'")}')">Delete</button>
         </td></tr>`).join('')||'<tr><td colspan="7" class="te">No requests</td></tr>'}
       </tbody></table></div>
     </div>
@@ -607,6 +611,39 @@ function ftc(val,tbodyId,col){
     if(!val){r.style.display='';return;}
     const c=r.cells[col];r.style.display=(c&&c.textContent.toLowerCase().includes(val.toLowerCase()))?'':'none';
   });
+}
+
+let _reqEditMode=false;
+function toggleReqEditMode(){
+  if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
+  _reqEditMode=!_reqEditMode;
+  const btn=$('req-edit-btn');
+  if(btn){
+    btn.style.background=_reqEditMode?'var(--red-bg)':'';
+    btn.style.color=_reqEditMode?'var(--red)':'';
+    btn.textContent=_reqEditMode?'✕ Done Editing':'✏ Edit';
+  }
+  document.querySelectorAll('.req-del-btn').forEach(el=>{
+    el.style.display=_reqEditMode?'inline-flex':'none';
+  });
+  if(_reqEditMode) toast('Edit mode on — Delete buttons now visible','info');
+}
+
+async function deleteRequest(id, title){
+  if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
+  if(!confirm(`DELETE REQUEST: "${title}"\n\nThis will permanently delete this project request and its extended form data.\n\nThis cannot be undone.`)) return;
+  try{
+    // Delete extended v12 data first
+    const v12=await listDocs('request_v12_data',[Query.equal('request_id',id)]);
+    for(const d of v12.documents){
+      await db.deleteDocument(DB_ID,'request_v12_data',d.$id);
+    }
+    // Delete the request
+    await db.deleteDocument(DB_ID,'project_requests',id);
+    await auditLog('REQUEST_DELETED','project_request',id,`Request deleted by ${S.profile.full_name}: ${title}`);
+    toast('Request deleted','info');
+    await requests();
+  }catch(e){toast('Error: '+e.message,'error');}
 }
 // ─── DYNAMIC TABLE HELPERS ────────────────────────────────────────────────
 function addDynRow(cid, hdrs, widths){
@@ -1081,7 +1118,9 @@ async function rejectReq(id){
 // ─── PROJECTS ─────────────────────────────────────────────────────────────
 async function projects(){
   $('tt').textContent='Project Portfolio';
-  if(canDo(['pmo','system_admin']))$('ta').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openProjModal()">+ New Project</button>`;
+  if(canDo(['pmo','system_admin']))$('ta').innerHTML=`
+    ${S.profile?.role==='system_admin'?`<button class="btn btn-ghost btn-sm" onclick="toggleProjEditMode()" id="proj-edit-btn">✏ Edit</button>`:''}
+    <button class="btn btn-primary btn-sm" onclick="openProjModal()">+ New Project</button>`;
   const {documents:data}=await listDocs('projects',[Query.equal('is_archived',false),Query.orderDesc('$createdAt')]);
   const active=data.filter(p=>!['closed','cancelled'].includes(p.status)).length;
   $('mc').innerHTML=`
@@ -1092,14 +1131,26 @@ async function projects(){
   <select class="fsel" onchange="filterPc('',this.value)"><option value="">All Statuses</option><option>initiation</option><option>planning</option><option>executing</option><option>monitoring_controlling</option><option>closing</option><option>closed</option></select></div>
   <div id="pgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:11px">
   ${data.map(p=>`
-    <div class="pc" onclick="nav('projDetail',{id:'${p.$id}'})" data-name="${esc(p.name).toLowerCase()}" data-status="${p.status}">
+    <div class="pc" id="pc-${p.$id}" onclick="pcClick(event,'${p.$id}')" data-name="${esc(p.name).toLowerCase()}" data-status="${p.status}">
       <span class="ri rag-${p.health_status}"></span>
       <div class="mono" style="font-size:.6rem;margin-bottom:4px">${esc(p.project_code)} ${p.healthcare_sensitivity?`<span class="badge bg-red" style="font-size:.53rem;padding:1px 4px">PHI</span>`:''}</div>
       <div style="font-size:.87rem;font-weight:700;margin-bottom:3px;line-height:1.3">${esc(p.name)}</div>
       <div style="font-size:.7rem;color:var(--text2);margin-bottom:8px">${esc(p.client_organisation)}</div>
       <div style="margin-bottom:7px">${badge(p.status)}</div>
-      <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);font-size:.68rem;color:var(--text3)">
-        <span>PM: ${esc(p.project_manager_name||'—')}</span><span>${fmtM(p.planned_budget)}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border);font-size:.68rem;color:var(--text3)">
+        <span>PM: ${esc(p.project_manager_name||'—')}</span>
+        <span>${fmtM(p.planned_budget)}</span>
+      </div>
+      <!-- edit-mode overlay buttons — hidden by default -->
+      <div class="proj-edit-overlay" id="peo-${p.$id}" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:none;gap:5px">
+        <button class="btn btn-ghost btn-sm" style="flex:1" onclick="event.stopPropagation();editProjModal('${p.$id}')">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="btn btn-danger btn-sm" style="flex:1" onclick="event.stopPropagation();deleteProject('${p.$id}','${esc(p.name).replace(/'/g,"\\'")}')">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Delete
+        </button>
       </div>
     </div>`).join('')||'<div style="grid-column:1/-1;text-align:center;padding:36px;color:var(--text3)">No projects yet.</div>'}
   </div>`;
@@ -1109,6 +1160,27 @@ function filterPc(s='',st=''){
     const nm=!s||c.dataset.name.includes(s.toLowerCase()),sts=!st||c.dataset.status===st;
     c.style.display=nm&&sts?'':'none';
   });
+}
+
+let _projEditMode=false;
+function toggleProjEditMode(){
+  if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
+  _projEditMode=!_projEditMode;
+  const btn=$('proj-edit-btn');
+  if(btn){
+    btn.style.background=_projEditMode?'var(--red-bg)':'';
+    btn.style.color=_projEditMode?'var(--red)':'';
+    btn.textContent=_projEditMode?'✕ Done Editing':'✏ Edit';
+  }
+  document.querySelectorAll('.proj-edit-overlay').forEach(el=>{
+    el.style.display=_projEditMode?'flex':'none';
+  });
+  if(_projEditMode) toast('Edit mode on — Edit or Delete any project','info');
+}
+
+function pcClick(event,id){
+  if(_projEditMode) return; // don't navigate in edit mode
+  nav('projDetail',{id});
 }
 function openProjModal(){
   om('Create New Project',`
@@ -2150,7 +2222,7 @@ async function editProjModal(id){
     <div class="fg"><label>Actual Cost (S$)</label><input id="ep-ac" type="number" value="${p.actual_cost||0}"></div>
     <div class="fg s2"><label>Scope Summary</label><textarea id="ep-sc" rows="2">${esc(p.scope_summary||'')}</textarea></div>
   </div>`,
-  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>${S.profile?.role==='system_admin'?`<button class="btn btn-danger" onclick="cm();deleteProject('${id}','${v('ep-n')||p.name}')">Delete Project</button>`:''}<button class="btn btn-primary" onclick="saveProj('${id}')">Save Changes</button>`);
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>${S.profile?.role==='system_admin'?`<button class="btn btn-danger" onclick="cm();deleteProject('${id}','${p.name.replace(/'/g,"\\'")}')">Delete Project</button>`:''}<button class="btn btn-primary" onclick="saveProj('${id}')">Save Changes</button>`);
 }
 async function saveProj(id){
   const v=id=>$(id)?.value?.trim();
