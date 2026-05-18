@@ -598,7 +598,7 @@ async function requests(){
         <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">View</button>
           ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" onclick="apprReq('${r.$id}')">Approve →</button><button class="btn btn-sm btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>`:''}
-          ${r.status==='approved'&&r.linked_project_id?`<button class="btn btn-ghost btn-sm" style="color:var(--green)" onclick="nav('projDetail',{id:'${r.linked_project_id}'})">→ Project</button>`:''}
+          
           <button class="req-del-btn btn btn-danger btn-sm" style="display:none" onclick="deleteRequest('${r.$id}','${esc(r.title).replace(/'/g,"\\'")}')">Delete</button>
         </td></tr>`).join('')||'<tr><td colspan="7" class="te">No requests</td></tr>'}
       </tbody></table></div>
@@ -643,6 +643,12 @@ async function deleteRequest(id, title){
     await auditLog('REQUEST_DELETED','project_request',id,`Request deleted by ${S.profile.full_name}: ${title}`);
     toast('Request deleted','info');
     await requests();
+    // Re-apply edit mode after re-render
+    if(_reqEditMode){
+      document.querySelectorAll('.req-del-btn').forEach(el=>{el.style.display='inline-flex';});
+      const btn=$('req-edit-btn');
+      if(btn){btn.style.background='var(--red-bg)';btn.style.color='var(--red)';btn.textContent='✕ Done Editing';}
+    }
   }catch(e){toast('Error: '+e.message,'error');}
 }
 // ─── DYNAMIC TABLE HELPERS ────────────────────────────────────────────────
@@ -673,7 +679,9 @@ function seedDynRows(cid, hdrs, widths, rows){
     addDynRow(cid,hdrs,widths);
     const last=document.querySelector(`#${cid} .dyn-row:last-child`);
     const inp=last.querySelectorAll('input,select');
-    Object.values(r).forEach((v,j)=>{if(inp[j])inp[j].value=v;});
+    // r can be array of values or object — handle both
+    const vals=Array.isArray(r)?r:Object.values(r);
+    vals.forEach((v,j)=>{if(inp[j])inp[j].value=v||'';});
   });
 }
 function dynHdr(labels,widths){
@@ -729,10 +737,10 @@ function openReqModal(){
       <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-prod',['Description','Qty','Remarks'],['','w80','w120'])">+ Add Product</button>
     </div>
 
-    <div class="fsec"><h4>Project Milestones</h4>
-      ${dynHdr(['Description','Remarks'],['','w160'])}
+    <div class="fsec"><h4>Payment Milestones</h4>
+      ${dynHdr(['Description / Payment Stage','%'],['','w80'])}
       <div id="rf-ms"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-ms',['Description','Remarks'],['','w160'])">+ Add Milestone</button>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-ms',['Description / Payment Stage','%'],['','w80'])">+ Add Payment Milestone</button>
     </div>
 
     <div class="fsec"><h4>Success Criteria (KPIs)</h4>
@@ -799,7 +807,7 @@ function openReqModal(){
     ]);
     // seed one empty product/milestone/kpi row
     addDynRow('rf-prod',['Description','Qty','Remarks'],['','w80','w120']);
-    addDynRow('rf-ms',['Description','Remarks'],['','w160']);
+    addDynRow('rf-ms',['Description / Payment Stage','%'],['','w80']);
     addDynRow('rf-kpi',['Description','Method','Threshold'],['','w160','w160']);
   },100);
 }
@@ -852,7 +860,7 @@ async function submitReq(){
       objectives:   v('rf-obj')||'',
       sales_revenue:v('rf-rev')||'',
       products_json:  JSON.stringify(getDynRows('rf-prod',['description','qty','remarks'])),
-      milestones_json:JSON.stringify(getDynRows('rf-ms',['description','remarks'])),
+      milestones_json:JSON.stringify(getDynRows('rf-ms',['description','percent'])),
       kpi_json:       JSON.stringify(getDynRows('rf-kpi',['description','method','threshold'])),
       stakeholders_json:JSON.stringify(getDynRows('rf-stk',['institution','role','names'])),
       maintenance_json:JSON.stringify({type:maintType,frequency:v('rf-mf'),warranty:v('rf-wy'),notes:v('rf-mn')}),
@@ -866,7 +874,6 @@ async function submitReq(){
 
 async function viewReq(id){
   const r=await getDoc('project_requests',id);
-  // Try to load extended v12 data
   let v12=null;
   try{
     const res=await listDocs('request_v12_data',[Query.equal('request_id',id)]);
@@ -874,14 +881,45 @@ async function viewReq(id){
   }catch{}
 
   const safeParse=(s,def=[])=>{try{return JSON.parse(s||'[]');}catch{return def;}};
-  const products  = v12 ? safeParse(v12.products_json)   : [];
-  const mss       = v12 ? safeParse(v12.milestones_json) : [];
-  const kpis      = v12 ? safeParse(v12.kpi_json)        : [];
-  const stks      = v12 ? safeParse(v12.stakeholders_json) : [];
-  const maint     = v12 ? safeParse(v12.maintenance_json,{})   : {};
-  const fin       = v12 ? safeParse(v12.finance_json,{})        : {};
+  const products   = v12 ? safeParse(v12.products_json)    : [];
+  const mss        = v12 ? safeParse(v12.milestones_json)  : [];
+  const kpis       = v12 ? safeParse(v12.kpi_json)         : [];
+  const stks       = v12 ? safeParse(v12.stakeholders_json): [];
+  const maint      = v12 ? safeParse(v12.maintenance_json, {}) : {};
+  const fin        = v12 ? safeParse(v12.finance_json, {})     : {};
 
   const canA=canDo(['pmo'])&&r.status==='submitted';
+  const canEdit=canDo(['pmo','project_manager','system_admin'])&&r.status!=='approved';
+
+  // If REJECTED — show rejection reason prominently
+  if(r.status==='rejected'){
+    om(`Request Rejected: ${r.request_number||'—'}`,`
+    <div style="background:var(--red-bg);border-left:4px solid var(--red);border-radius:8px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:.8rem;font-weight:700;color:var(--red);margin-bottom:5px">❌ This request was rejected by PMO</div>
+      <div style="font-size:.82rem;color:#7F1D1D;line-height:1.6">${esc(r.rejected_reason||r.pmo_review_notes||'No reason provided.')}</div>
+      <div style="font-size:.7rem;color:var(--text3);margin-top:6px">Reviewed: ${fmtD(r.pmo_reviewed_at)}</div>
+    </div>
+    <div class="g2" style="gap:11px">
+      <div>
+        <div class="dsec"><h4>Request Details</h4>
+          <div class="dr"><span class="dl">Req #</span><span class="dv mono">${esc(r.request_number||'—')}</span></div>
+          <div class="dr"><span class="dl">Title</span><span class="dv">${esc(r.title)}</span></div>
+          <div class="dr"><span class="dl">Sales Manager</span><span class="dv">${esc(v12?.sales_manager||r.requestor_name)}</span></div>
+          <div class="dr"><span class="dl">Institution</span><span class="dv">${esc(v12?.institution||'—')}</span></div>
+          <div class="dr"><span class="dl">Submitted</span><span class="dv">${fmtD(r.$createdAt)}</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="dsec"><h4>Background</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem)}</p></div>
+        <div class="dsec"><h4>Business Case</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.high_level_scope)}</p></div>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="cm()">Close</button>
+     ${canEdit?`<button class="btn btn-primary" onclick="cm();editReqModal('${r.$id}')">Edit & Resubmit</button>`:''}`,
+    {lg:true,sub:'Rejected request — can be edited and resubmitted'});
+    return;
+  }
+
   om(`Request: ${r.request_number||'—'}`,`
   <div class="ctabs">
     <div class="ctab active" onclick="swCTab(this,'rc1')">Overview</div>
@@ -894,27 +932,30 @@ async function viewReq(id){
     <div class="g2" style="gap:11px">
       <div>
         <div class="dsec"><h4>Request Details</h4>
-          <div class="dr"><span class="dl">Request #</span><span class="dv mono">${esc(r.request_number)}</span></div>
+          <div class="dr"><span class="dl">Request #</span><span class="dv mono">${esc(r.request_number||'—')}</span></div>
           <div class="dr"><span class="dl">PO #</span><span class="dv">${esc(v12?.po_number||'—')}</span></div>
           <div class="dr"><span class="dl">Date</span><span class="dv">${fmtD(r.$createdAt)}</span></div>
           <div class="dr"><span class="dl">Sales Manager</span><span class="dv">${esc(v12?.sales_manager||r.requestor_name)}</span></div>
           <div class="dr"><span class="dl">Institution</span><span class="dv">${esc(v12?.institution||'—')}</span></div>
           <div class="dr"><span class="dl">Status</span><span class="dv">${badge(r.status)}</span></div>
           <div class="dr"><span class="dl">Urgency</span><span class="dv">${badge(r.urgency_level)}</span></div>
+          <div class="dr"><span class="dl">Target Start</span><span class="dv">${fmtD(r.target_start_date)}</span></div>
+          <div class="dr"><span class="dl">Target End</span><span class="dv">${fmtD(r.target_end_date)}</span></div>
+          <div class="dr"><span class="dl">Sales Revenue</span><span class="dv">${v12?.sales_revenue?'S$'+Number(v12.sales_revenue).toLocaleString():'—'}</span></div>
         </div>
-        <div class="dsec"><h4>Healthcare Flags</h4>
-          <div style="display:flex;flex-wrap:wrap;gap:5px">
-            ${r.regulatory_indicator?`<span class="badge bg-amber">Regulatory</span>`:''}
-            ${r.phi_involved?`<span class="badge bg-red">PHI</span>`:''}
-            ${r.moh_reporting_required?`<span class="badge bg-purple">MOH Reporting</span>`:''}
-            ${!r.regulatory_indicator&&!r.phi_involved&&!r.moh_reporting_required?'<span style="color:var(--text3);font-size:.75rem">None</span>':''}
-          </div>
-        </div>
+        <div class="dsec"><h4>Healthcare Flags</h4><div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${r.regulatory_indicator?`<span class="badge bg-amber">Regulatory</span>`:''}
+          ${r.phi_involved?`<span class="badge bg-red">PHI</span>`:''}
+          ${r.moh_reporting_required?`<span class="badge bg-purple">MOH Reporting</span>`:''}
+          ${!r.regulatory_indicator&&!r.phi_involved&&!r.moh_reporting_required?'<span style="color:var(--text3);font-size:.75rem">None</span>':''}
+        </div></div>
+        ${r.status==='approved'?`<div style="margin-top:10px"><span class="badge bg-green" style="font-size:.76rem;padding:4px 10px">✓ Project Created — see Projects portfolio</span></div>`:''}
+        ${r.pmo_review_notes&&r.status==='approved'?`<div class="dsec" style="margin-top:10px"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
       </div>
       <div>
-        <div class="dsec"><h4>Background</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem)}</p></div>
+        <div class="dsec"><h4>Background</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem||'—')}</p></div>
         <div class="dsec"><h4>Objectives</h4><p style="font-size:.78rem;line-height:1.6">${esc(v12?.objectives||r.expected_benefits||'—')}</p></div>
-        <div class="dsec"><h4>Business Case</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.high_level_scope)}</p></div>
+        <div class="dsec"><h4>Business Case</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.high_level_scope||'—')}</p></div>
       </div>
     </div>
   </div>
@@ -922,25 +963,25 @@ async function viewReq(id){
   <div class="cpane" id="rc2">
     <div class="g2" style="gap:11px">
       <div>
-        <div class="dsec"><h4>Schedule</h4>
-          <div class="dr"><span class="dl">Sales Revenue</span><span class="dv">${v12?.sales_revenue?'S$'+Number(v12.sales_revenue).toLocaleString():'—'}</span></div>
-          <div class="dr"><span class="dl">Target Start</span><span class="dv">${fmtD(r.target_start_date)}</span></div>
-          <div class="dr"><span class="dl">Target End</span><span class="dv">${fmtD(r.target_end_date)}</span></div>
-        </div>
         <div class="dsec"><h4>Products / Services</h4>
-          ${products.length?`<table style="width:100%;border-collapse:collapse"><thead><tr><th style="font-size:.62rem;padding:5px">Description</th><th style="font-size:.62rem;padding:5px">Qty</th><th style="font-size:.62rem;padding:5px">Remarks</th></tr></thead><tbody>
-          ${products.map(p=>`<tr><td style="padding:5px;font-size:.75rem">${esc(p.description)}</td><td style="padding:5px;font-size:.75rem">${esc(p.qty)}</td><td style="padding:5px;font-size:.75rem">${esc(p.remarks)}</td></tr>`).join('')}</tbody></table>`:
+          ${products.length?`<table style="width:100%;border-collapse:collapse;font-size:.75rem">
+          <thead><tr><th style="padding:4px 6px;background:#f5f7fa">Description</th><th style="padding:4px 6px;background:#f5f7fa">Qty</th><th style="padding:4px 6px;background:#f5f7fa">Remarks</th></tr></thead>
+          <tbody>${products.map(p=>`<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(p.description)}</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(p.qty)}</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(p.remarks)}</td></tr>`).join('')}</tbody></table>`:
           '<p style="color:var(--text3);font-size:.75rem">No products listed</p>'}
+        </div>
+        <div class="dsec"><h4>KPIs / Success Criteria</h4>
+          ${kpis.length?`<table style="width:100%;border-collapse:collapse;font-size:.75rem">
+          <thead><tr><th style="padding:4px 6px;background:#f5f7fa">Description</th><th style="padding:4px 6px;background:#f5f7fa">Method</th><th style="padding:4px 6px;background:#f5f7fa">Threshold</th></tr></thead>
+          <tbody>${kpis.map(k=>`<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(k.description)}</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(k.method)}</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(k.threshold)}</td></tr>`).join('')}</tbody></table>`:
+          '<p style="color:var(--text3);font-size:.75rem">No KPIs listed</p>'}
         </div>
       </div>
       <div>
-        <div class="dsec"><h4>Milestones</h4>
-          ${mss.length?mss.map(m=>`<div class="dr"><span class="dl trunc">${esc(m.description)}</span><span class="dv" style="font-size:.73rem;color:var(--text2)">${esc(m.remarks)}</span></div>`).join(''):'<p style="color:var(--text3);font-size:.75rem">No milestones</p>'}
-        </div>
-        <div class="dsec"><h4>Success Criteria (KPIs)</h4>
-          ${kpis.length?`<table style="width:100%;border-collapse:collapse"><thead><tr><th style="font-size:.62rem;padding:5px">Description</th><th style="font-size:.62rem;padding:5px">Method</th><th style="font-size:.62rem;padding:5px">Threshold</th></tr></thead><tbody>
-          ${kpis.map(k=>`<tr><td style="padding:5px;font-size:.75rem">${esc(k.description)}</td><td style="padding:5px;font-size:.75rem">${esc(k.method)}</td><td style="padding:5px;font-size:.75rem">${esc(k.threshold)}</td></tr>`).join('')}</tbody></table>`:
-          '<p style="color:var(--text3);font-size:.75rem">No KPIs listed</p>'}
+        <div class="dsec"><h4>Payment Milestones</h4>
+          ${mss.length?`<table style="width:100%;border-collapse:collapse;font-size:.75rem">
+          <thead><tr><th style="padding:4px 6px;background:#f5f7fa">Description</th><th style="padding:4px 6px;background:#f5f7fa">%</th></tr></thead>
+          <tbody>${mss.map(m=>`<tr><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(m.description)}</td><td style="padding:4px 6px;border-bottom:1px solid var(--border)">${esc(m.percent||m.remarks||'')}</td></tr>`).join('')}</tbody></table>`:
+          '<p style="color:var(--text3);font-size:.75rem">No payment milestones listed</p>'}
         </div>
       </div>
     </div>
@@ -950,7 +991,7 @@ async function viewReq(id){
     <div class="g2" style="gap:11px">
       <div>
         <div class="dsec"><h4>Stakeholders</h4>
-          ${stks.length?stks.map(s=>`<div class="dr"><span class="dl trunc" style="width:120px">${esc(s.institution)}</span><span class="dv" style="font-size:.73rem"><strong>${esc(s.role)}</strong> ${esc(s.names)}</span></div>`).join(''):'<p style="color:var(--text3);font-size:.75rem">No stakeholders</p>'}
+          ${stks.length?stks.map(s=>`<div class="dr"><span class="dl trunc" style="width:120px">${esc(s.institution)}</span><span class="dv" style="font-size:.73rem"><strong>${esc(s.role)}</strong>${s.names?' — '+esc(s.names):''}</span></div>`).join(''):'<p style="color:var(--text3);font-size:.75rem">No stakeholders</p>'}
         </div>
         <div class="dsec"><h4>Maintenance</h4>
           <div class="dr"><span class="dl">Type</span><span class="dv" style="font-size:.73rem">${esc((maint.type||'').replace(/_/g,' '))}</span></div>
@@ -966,20 +1007,223 @@ async function viewReq(id){
           <div class="dr"><span class="dl">Commission</span><span class="dv">${esc(fin.commission||'—')}</span></div>
           <div class="dr"><span class="dl">Warranty Period</span><span class="dv">${esc(fin.warranty_period||'—')}</span></div>
         </div>
-        ${r.pmo_review_notes?`<div class="dsec"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
-        ${r.status==='approved'&&r.linked_project_id?`<div style="margin-top:10px"><button class="btn btn-success btn-sm" onclick="cm();nav('projDetail',{id:'${r.linked_project_id}'})">→ View Created Project</button></div>`:''}
       </div>
     </div>
   </div>
 
   ${canA?`<div class="cpane" id="rc4">
-    <div class="fg"><label>PMO Review Notes</label><textarea id="pmn" rows="3" placeholder="Enter review notes or rejection reason…"></textarea></div>
+    <div class="fg"><label>PMO Review Notes</label><textarea id="pmn" rows="3" placeholder="Optional notes. If rejecting, provide the reason here."></textarea></div>
   </div>`:''}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
+   ${canEdit&&r.status!=='approved'?`<button class="btn btn-primary" onclick="cm();editReqModal('${r.$id}')">✏ Edit Request</button>`:''}
    ${canA?`<button class="btn btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>
    <button class="btn btn-success" onclick="apprReq('${r.$id}')">Approve & Create Project</button>`:''}`,
   {lg:true,sub:r.title});
 }
+
+
+// ─── EDIT REQUEST MODAL ───────────────────────────────────────────────────
+async function editReqModal(id){
+  const r=await getDoc('project_requests',id);
+  let v12=null;
+  try{
+    const res=await listDocs('request_v12_data',[Query.equal('request_id',id)]);
+    if(res.documents.length) v12=res.documents[0];
+  }catch{}
+
+  const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+  const products   = v12 ? safeParse(v12.products_json)    : [];
+  const mss        = v12 ? safeParse(v12.milestones_json)  : [];
+  const kpis       = v12 ? safeParse(v12.kpi_json)         : [];
+  const stks       = v12 ? safeParse(v12.stakeholders_json): [];
+  const maint      = v12 ? safeParse(v12.maintenance_json, {}) : {};
+  const fin        = v12 ? safeParse(v12.finance_json, {})     : {};
+
+  _rStep=1;
+  om(`Edit Request — ${r.request_number||'—'}`,`
+  <div class="step-nav" id="sr-nav">
+    <div class="step-dot active" id="sd1"></div>
+    <div class="step-dot" id="sd2"></div>
+    <div class="step-dot" id="sd3"></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step-pane active" id="sp1">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Step 1 of 3 — Project Information</div>
+    <div class="fgrid">
+      <div class="fg"><label>PO #</label><input id="rf-po" value="${esc(v12?.po_number||'')}"></div>
+      <div class="fg"><label>Date</label><input id="rf-date" type="date" value="${esc(r.$createdAt?.split('T')[0]||'')}"></div>
+      <div class="fg"><label>Sales Manager <span class="req">*</span></label><input id="rf-sm" value="${esc(v12?.sales_manager||r.requestor_name||'')}"></div>
+      <div class="fg"><label>Institution / Client <span class="req">*</span></label><input id="rf-inst" value="${esc(v12?.institution||'')}"></div>
+      <div class="fg s2"><label>Project Title <span class="req">*</span></label><input id="rf-t" value="${esc(r.title||'')}"></div>
+    </div>
+    <div class="fsec"><h4>Project Overview</h4>
+      <div class="fg"><label>Background <span class="req">*</span></label><textarea id="rf-bg" rows="4">${esc(r.business_problem||v12?.background||'')}</textarea></div>
+      <div class="fg"><label>Objectives</label><textarea id="rf-obj" rows="3">${esc(v12?.objectives||r.expected_benefits||'')}</textarea></div>
+    </div>
+    <div class="fsec"><h4>Business Case</h4>
+      <div class="fg"><label>Business Case <span class="req">*</span></label><textarea id="rf-bc" rows="4">${esc(r.high_level_scope||'')}</textarea></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-pane" id="sp2">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Step 2 of 3 — Commercial &amp; Schedule</div>
+    <div class="fgrid">
+      <div class="fg"><label>Sales Revenue (S$)</label><input id="rf-rev" type="number" value="${esc(v12?.sales_revenue||'')}"></div>
+      <div class="fg"><label>Urgency</label><select id="rf-u">
+        <option value="low" ${r.urgency_level==='low'?'selected':''}>Low</option>
+        <option value="normal" ${r.urgency_level==='normal'||!r.urgency_level?'selected':''}>Normal</option>
+        <option value="high" ${r.urgency_level==='high'?'selected':''}>High</option>
+        <option value="urgent" ${r.urgency_level==='urgent'?'selected':''}>Urgent</option>
+      </select></div>
+      <div class="fg"><label>Target Start</label><input id="rf-ts" type="date" value="${esc(r.target_start_date||'')}"></div>
+      <div class="fg"><label>Target End</label><input id="rf-te" type="date" value="${esc(r.target_end_date||'')}"></div>
+    </div>
+    <div class="fsec"><h4>Products / Services</h4>
+      ${dynHdr(['Description','Qty','Remarks'],['','w80','w120'])}
+      <div id="rf-prod"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-prod',['Description','Qty','Remarks'],['','w80','w120'])">+ Add Product</button>
+    </div>
+    <div class="fsec"><h4>Payment Milestones</h4>
+      ${dynHdr(['Description / Payment Stage','%'],['','w80'])}
+      <div id="rf-ms"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-ms',['Description / Payment Stage','%'],['','w80'])">+ Add Payment Milestone</button>
+    </div>
+    <div class="fsec"><h4>KPIs / Success Criteria</h4>
+      ${dynHdr(['Description','Measurement Method','Acceptance Threshold'],['','w160','w160'])}
+      <div id="rf-kpi"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-kpi',['Description','Method','Threshold'],['','w160','w160'])">+ Add KPI</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-pane" id="sp3">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Step 3 of 3 — Stakeholders, Maintenance &amp; Finance</div>
+    <div class="fsec" style="border-top:none;padding-top:0"><h4>Stakeholders</h4>
+      ${dynHdr(['Institution','Role','Names'],['w160','w160',''])}
+      <div id="rf-stk"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-stk',['Institution','Role','Names'],['w160','w160',''])">+ Add Stakeholder</button>
+    </div>
+    <div class="fsec"><h4>Maintenance Information</h4>
+      <div style="margin-bottom:8px">
+        <div style="font-size:.73rem;font-weight:600;color:var(--text2);margin-bottom:5px">Maintenance Type</div>
+        <div class="fchk"><input type="radio" name="maint" id="m-na" value="NOT_APPLICABLE" ${maint.type==='NOT_APPLICABLE'||!maint.type?'checked':''}><label for="m-na">Not Applicable</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-pm" value="PM_ONLY" ${maint.type==='PM_ONLY'?'checked':''}><label for="m-pm">Non-Comprehensive: PM only (no spare parts)</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-pmu" value="PM_UNLIMITED" ${maint.type==='PM_UNLIMITED'?'checked':''}><label for="m-pmu">Non-Comprehensive: PM + Unlimited Calls (no spare parts)</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-pms" value="PM_SOME" ${maint.type==='PM_SOME'?'checked':''}><label for="m-pms">Non-Comprehensive: PM + Unlimited Calls + Some spare parts</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-comp" value="COMPREHENSIVE" ${maint.type==='COMPREHENSIVE'?'checked':''}><label for="m-comp">Comprehensive: PM + Unlimited Calls + All spare parts</label></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>Frequency</label>
+          <select id="rf-mf">
+            <option value="" ${!maint.frequency?'selected':''}>—</option>
+            <option value="quarterly" ${maint.frequency==='quarterly'?'selected':''}>Quarterly (4×/year)</option>
+            <option value="biannual" ${maint.frequency==='biannual'?'selected':''}>Bi-Annually (2×/year)</option>
+          </select>
+        </div>
+        <div class="fg"><label>Warranty Period</label>
+          <select id="rf-wy">
+            <option value="" ${!maint.warranty?'selected':''}>—</option>
+            <option value="1" ${maint.warranty==='1'?'selected':''}>1 Year</option>
+            <option value="2" ${maint.warranty==='2'?'selected':''}>2 Years</option>
+          </select>
+        </div>
+        <div class="fg s2"><label>Maintenance Notes</label><input id="rf-mn" value="${esc(maint.notes||'')}"></div>
+      </div>
+    </div>
+    <div class="fsec"><h4>Finance Information</h4>
+      <div class="fgrid">
+        <div class="fg"><label>Delivery (DO) No.</label><input id="rf-do" value="${esc(fin.do_number||'')}"></div>
+        <div class="fg"><label>UAT Sign-off</label><input id="rf-uat" value="${esc(fin.uat||'')}"></div>
+        <div class="fg"><label>Commission</label><input id="rf-com" value="${esc(fin.commission||'')}"></div>
+        <div class="fg"><label>Warranty Period</label><input id="rf-wp" value="${esc(fin.warranty_period||'')}"></div>
+      </div>
+    </div>
+    <div class="fsec"><h4>Healthcare / Regulatory Flags</h4>
+      <div class="fchk"><input type="checkbox" id="rf-reg" ${r.regulatory_indicator?'checked':''}><label for="rf-reg">Regulatory / compliance requirement (MOH, PDPA)</label></div>
+      <div class="fchk"><input type="checkbox" id="rf-phi" ${r.phi_involved?'checked':''}><label for="rf-phi">Patient Health Information (PHI) involved</label></div>
+      <div class="fchk"><input type="checkbox" id="rf-moh" ${r.moh_reporting_required?'checked':''}><label for="rf-moh">MOH reporting required</label></div>
+    </div>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-secondary" id="rf-prev" onclick="reqStep(-1)" style="display:none">← Prev</button>
+   <button class="btn btn-primary" id="rf-next" onclick="reqStep(1)">Next →</button>
+   <button class="btn btn-success" id="rf-sub" onclick="updateReq('${id}','${v12?v12.$id:''}')" style="display:none">Save Changes</button>`,
+  {lg:true,sub:'Edit all fields — changes saved immediately'});
+
+  // Pre-fill dynamic tables after modal renders
+  setTimeout(()=>{
+    if(products.length) seedDynRows('rf-prod',['Description','Qty','Remarks'],['','w80','w120'],products.map(p=>({Description:p.description,Qty:p.qty,Remarks:p.remarks})));
+    else addDynRow('rf-prod',['Description','Qty','Remarks'],['','w80','w120']);
+
+    if(mss.length) seedDynRows('rf-ms',['Description / Payment Stage','%'],['','w80'],mss.map(m=>({'Description / Payment Stage':m.description,'%':m.percent||m.remarks||''})));
+    else addDynRow('rf-ms',['Description / Payment Stage','%'],['','w80']);
+
+    if(kpis.length) seedDynRows('rf-kpi',['Description','Method','Threshold'],['','w160','w160'],kpis.map(k=>({Description:k.description,Method:k.method,Threshold:k.threshold})));
+    else addDynRow('rf-kpi',['Description','Method','Threshold'],['','w160','w160']);
+
+    if(stks.length) seedDynRows('rf-stk',['Institution','Role','Names'],['w160','w160',''],stks.map(s=>({Institution:s.institution,Role:s.role,Names:s.names})));
+    else{
+      seedDynRows('rf-stk',['Institution','Role','Names'],['w160','w160',''],[
+        {Institution:'Omni-Health',Role:'',Names:''},
+        {Institution:'Synapxe',Role:'',Names:''}
+      ]);
+    }
+  },150);
+}
+
+async function updateReq(id, v12Id){
+  const v=el=>$(el)?.value?.trim();
+  if(!v('rf-sm')||!v('rf-inst')||!v('rf-t')||!v('rf-bg')||!v('rf-bc')){
+    toast('Fill mandatory fields (marked *)','error');reqStep(-(_rStep-1));return;
+  }
+  try{
+    // Update core request fields
+    await updateDoc('project_requests',id,{
+      requestor_name:  v('rf-sm')||'',
+      title:           v('rf-t'),
+      business_problem:v('rf-bg'),
+      high_level_scope:v('rf-bc'),
+      expected_benefits:v('rf-obj')||'',
+      initial_budget_estimate:parseFloat(v('rf-rev'))||0,
+      target_start_date:v('rf-ts')||'',
+      target_end_date:  v('rf-te')||'',
+      urgency_level:    v('rf-u'),
+      regulatory_indicator:  $('rf-reg').checked,
+      phi_involved:          $('rf-phi').checked,
+      moh_reporting_required:$('rf-moh').checked,
+      status:'submitted'  // resubmit if was rejected
+    });
+
+    // Update or create v12 data
+    const maintType=document.querySelector('input[name="maint"]:checked')?.value||'NOT_APPLICABLE';
+    const v12Data={
+      po_number:    v('rf-po')||'',
+      sales_manager:v('rf-sm')||'',
+      institution:  v('rf-inst')||'',
+      background:   v('rf-bg')||'',
+      objectives:   v('rf-obj')||'',
+      sales_revenue:v('rf-rev')||'',
+      products_json:  JSON.stringify(getDynRows('rf-prod',['description','qty','remarks'])),
+      milestones_json:JSON.stringify(getDynRows('rf-ms',['description','percent'])),
+      kpi_json:       JSON.stringify(getDynRows('rf-kpi',['description','method','threshold'])),
+      stakeholders_json:JSON.stringify(getDynRows('rf-stk',['institution','role','names'])),
+      maintenance_json:JSON.stringify({type:maintType,frequency:v('rf-mf'),warranty:v('rf-wy'),notes:v('rf-mn')}),
+      finance_json:JSON.stringify({do_number:v('rf-do'),uat:v('rf-uat'),commission:v('rf-com'),warranty_period:v('rf-wp')})
+    };
+
+    if(v12Id){
+      await updateDoc('request_v12_data',v12Id,v12Data);
+    }else{
+      await createDoc('request_v12_data',{request_id:id,...v12Data});
+    }
+
+    await auditLog('REQUEST_UPDATED','project_request',id,`Request updated: ${v('rf-t')}`);
+    toast('Request updated!','success');cm();updateBadges();await requests();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
 
 function swCTab(el,paneId){
   const modal=el.closest('.mbody');
@@ -1030,8 +1274,8 @@ async function apprReq(id){
       created_by:         S.profile.$id
     });
 
-    // 4. Link project to request
-    await updateDoc('project_requests',id,{linked_project_id:proj.$id});
+    // 4. Store project link in v12 data (no schema change needed)
+    if(v12){try{await updateDoc('request_v12_data',v12.$id,{finance_json:v12.finance_json||'{}'});}catch{}}
 
     // 5. Auto-create initial artefacts
     // Business Case
@@ -2281,9 +2525,18 @@ async function deleteProject(id, name){
       `Project "${name}" deleted by ${S.profile.full_name}. ${totalDeleted} linked records removed.`);
 
     toast(`Project deleted. ${totalDeleted} linked records removed.`,'success');
-    _projEditMode=false;
-    if(S.view==='projDetail') await nav('projects');
-    else await projects();
+    if(S.view==='projDetail'){
+      _projEditMode=false;
+      await nav('projects');
+    } else {
+      await projects();
+      // Re-apply edit mode overlays after re-render
+      if(_projEditMode){
+        document.querySelectorAll('.proj-edit-overlay').forEach(el=>{el.style.display='flex';});
+        const btn=$('proj-edit-btn');
+        if(btn){btn.style.background='var(--red-bg)';btn.style.color='var(--red)';btn.textContent='✕ Done Editing';}
+      }
+    }
   }catch(e){
     toast('Error: '+e.message,'error');
     if(btn){btn.disabled=false;btn.textContent='Delete';}
