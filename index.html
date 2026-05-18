@@ -1632,7 +1632,7 @@ async function tInit(p,el){
   // Find the most likely linked request (institution matches client_org or title matches)
   const linkedReq=reqLink.documents.find(r=>r.title===p.name)||(reqLink.documents.length?reqLink.documents[0]:null);
 
-  const types=[{t:'business_case',l:'Business Case'},{t:'benefits_management_plan',l:'Benefits Mgmt Plan'},{t:'project_charter',l:'Project Charter'},{t:'stakeholder_register',l:'Stakeholder Register'},{t:'raid_log',l:'RAID Log'}];
+  const types=[{t:'business_case',l:'Business Case'},{t:'benefits_management_plan',l:'Benefits Mgmt Plan'},{t:'project_charter',l:'Project Charter'},{t:'stakeholder_register',l:'Stakeholder Register'}];
   const charterJson=charter?encodeURIComponent(JSON.stringify({$id:charter.$id,description:charter.description,status:charter.status,project_id:charter.project_id})):'';
   el.innerHTML=`
   <div style="background:${charter?charter.status==='approved'?'var(--green-bg)':'var(--blue-light)':'var(--amber-bg)'};border-left:4px solid ${charter?charter.status==='approved'?'var(--green)':'var(--blue)':'var(--amber)'};border-radius:8px;padding:12px 15px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between">
@@ -1693,33 +1693,20 @@ async function tInit(p,el){
 // Import Business Case artefact content from the linked project request
 async function importFromRequest(pid, reqId){
   try{
-    const [r, v12res] = await Promise.all([
-      getDoc('project_requests', reqId),
-      listDocs('request_v12_data',[Query.equal('request_id',reqId)])
-    ]);
-    const v12 = v12res.documents[0]||null;
-    const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+    const r=await getDoc('project_requests', reqId);
 
     // Check if business case already exists
     const existing=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type','business_case')]);
 
+    // Only import the business case text
     const bcData={
-      background:   r.business_problem||'',
-      objectives:   v12?.objectives||r.expected_benefits||'',
-      business_case:r.high_level_scope||'',
-      sales_revenue:v12?.sales_revenue||'',
-      products:     safeParse(v12?.products_json),
-      kpis:         safeParse(v12?.kpi_json),
-      po_number:    v12?.po_number||'',
-      institution:  v12?.institution||''
+      business_case: r.high_level_scope||''
     };
 
     if(existing.documents.length){
-      // Update existing business case
       await updateDoc('artefacts',existing.documents[0].$id,{description:JSON.stringify(bcData)});
-      toast('Business Case updated from request data','success');
+      toast('Business Case text updated from request','success');
     } else {
-      // Create new
       await createDoc('artefacts',{
         project_id:pid, artefact_type:'business_case',
         title:'Business Case — '+r.title,
@@ -1729,7 +1716,7 @@ async function importFromRequest(pid, reqId){
       });
       toast('Business Case imported from request','success');
     }
-    await auditLog('ARTEFACT_IMPORTED','artefact',pid,'Business case imported from project request',pid);
+    await auditLog('ARTEFACT_IMPORTED','artefact',pid,'Business case text imported from project request',pid);
     renderTab(S.ptab,S.proj);
   }catch(e){toast('Import error: '+e.message,'error');}
 }
@@ -2913,7 +2900,6 @@ function openCharterModal(pid, artId, art){
 }
 
 async function saveCharter(pid, artId, submit=false){
-  // Collect all tables
   const getTableRows=(id, fields)=>{
     const rows=[];
     document.querySelectorAll(`#${id} .dyn-row`).forEach(row=>{
@@ -2935,12 +2921,9 @@ async function saveCharter(pid, artId, submit=false){
   const charterData = JSON.stringify({scope,equipment,deliverables,assumptions,constraints,risks,team});
 
   try{
-    // 1. Save charter artefact
+    // ── 1. Save charter artefact ──────────────────────────────────────────
     if(artId){
-      await updateDoc('artefacts',artId,{
-        description: charterData,
-        status: submit?'in_review':'draft'
-      });
+      await updateDoc('artefacts',artId,{description:charterData, status:submit?'in_review':'draft'});
     } else {
       const newArt=await createDoc('artefacts',{
         project_id:pid, artefact_type:'project_charter', title:'Project Charter',
@@ -2951,39 +2934,121 @@ async function saveCharter(pid, artId, submit=false){
       artId=newArt.$id;
     }
 
-    // 2. Auto-populate deliverables → milestones
+    // Helper: upsert a planning artefact (create or update by type)
+    const upsertArtefact=async(type, title, description, processGroup='planning')=>{
+      const existing=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type',type)]);
+      if(existing.documents.length){
+        await updateDoc('artefacts',existing.documents[0].$id,{description,title});
+      } else {
+        await createDoc('artefacts',{
+          project_id:pid, artefact_type:type, title, description,
+          version:'1.0', status:'draft', process_group:processGroup,
+          owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+        });
+      }
+    };
+
+    // ── 2. SCOPE → scope_statement artefact ──────────────────────────────
+    if(scope.length){
+      const inScope =scope.filter(s=>s.inout==='In').map(s=>`• ${s.description}${s.remarks?' — '+s.remarks:''}`).join('\n');
+      const outScope=scope.filter(s=>s.inout==='Out').map(s=>`• ${s.description}${s.remarks?' — '+s.remarks:''}`).join('\n');
+      await upsertArtefact('scope_statement','Scope Statement',
+        JSON.stringify({in_scope:inScope,out_scope:outScope,scope_rows:scope}));
+    }
+
+    // ── 3. EQUIPMENT → stored in scope_statement as equipment_rows ────────
+    if(equipment.length){
+      const existing=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type','scope_statement')]);
+      if(existing.documents.length){
+        try{
+          const d=JSON.parse(existing.documents[0].description||'{}');
+          d.equipment_rows=equipment;
+          await updateDoc('artefacts',existing.documents[0].$id,{description:JSON.stringify(d)});
+        }catch{}
+      } else {
+        await upsertArtefact('scope_statement','Scope Statement',JSON.stringify({scope_rows:scope,equipment_rows:equipment}));
+      }
+    }
+
+    // ── 4. DELIVERABLES → milestones (clear old charter-sourced, re-seed) ─
+    const existingMs=await listDocs('milestones',[Query.equal('project_id',pid)]);
+    const charterMs=existingMs.documents.filter(m=>m.description==='charter_deliverable');
+    for(const m of charterMs) try{await db.deleteDocument(DB_ID,'milestones',m.$id);}catch{}
     for(const d of deliverables){
       if(!d.description) continue;
       await createDoc('milestones',{
-        project_id:pid, name:d.description, phase:'',
-        planned_date:d.planned_date||'', status:'upcoming', is_stage_gate:false
+        project_id:pid, name:d.description, phase:'Delivery',
+        planned_date:d.planned_date||'', status:'upcoming', is_stage_gate:false,
+        description:'charter_deliverable'  // marker so we can re-seed
       });
     }
+    // Also store deliverables in wbs_dictionary artefact
+    if(deliverables.length){
+      await upsertArtefact('wbs_dictionary','WBS Dictionary',
+        JSON.stringify({deliverables}));
+    }
 
-    // 3. Auto-populate risks → risk register
+    // ── 5. ASSUMPTIONS → requirements_register artefact ──────────────────
+    if(assumptions.length){
+      await upsertArtefact('requirements_register','Requirements Register',
+        JSON.stringify({assumptions}));
+    }
+
+    // ── 6. CONSTRAINTS → stored in project_management_plan ───────────────
+    if(constraints.some(c=>c.description)){
+      await upsertArtefact('project_management_plan','Project Management Plan',
+        JSON.stringify({constraints}));
+    }
+
+    // ── 7. RISKS → risk register (clear charter-sourced, re-seed) ─────────
+    const existingRisks=await listDocs('risks',[Query.equal('project_id',pid)]);
+    const charterRisks=existingRisks.documents.filter(r=>r.category==='charter_import');
+    for(const r of charterRisks) try{await db.deleteDocument(DB_ID,'risks',r.$id);}catch{}
+    const scoreMap={low:4,medium:9,high:16,critical:20};
     for(const r of risks){
       if(!r.risk) continue;
-      const riskId=genId('RSK');
+      const score=scoreMap[r.level]||9;
       await createDoc('risks',{
-        project_id:pid, risk_id:riskId, title:r.risk,
-        description:r.risk, category:r.type||'Technical',
+        project_id:pid, risk_id:genId('RSK'), title:r.risk,
+        description:r.risk, category:'charter_import',
         probability:'medium', impact:r.level||'medium',
-        risk_score:9, risk_rating:'Medium',
+        risk_score:score, risk_rating:score>=15?'Critical':score>=9?'High':'Medium',
         status:'identified', response_strategy:'mitigate',
         mitigation_strategy:r.mitigation||'',
         raised_by:S.profile.$id, owner_id:S.profile.$id, owner_name:S.profile.full_name,
         is_healthcare_regulatory:false
       });
     }
-
-    // 4. Update project manager name if set in team
-    const pm=team.find(t=>t.position?.toLowerCase().includes('project manager'));
-    if(pm?.name){
-      await updateDoc('projects',pid,{project_manager_name:pm.name});
+    // Also store risks in risk_management_plan artefact
+    if(risks.some(r=>r.risk)){
+      await upsertArtefact('risk_management_plan','Risk Management Plan',
+        JSON.stringify({risks}));
     }
 
-    await auditLog('CHARTER_SAVED','artefact',artId,'Project Charter saved',pid);
-    toast(submit?'Charter saved and submitted for approval!':'Charter saved!','success');
+    // ── 8. PROJECT TEAM → resource_plan + update project PM name ──────────
+    if(team.some(t=>t.name)){
+      await upsertArtefact('resource_plan','Resource Plan',
+        JSON.stringify({team}));
+      // Also update RACI matrix
+      await upsertArtefact('raci_matrix','RACI Matrix',
+        JSON.stringify({team}));
+      const pm=team.find(t=>t.position?.toLowerCase().includes('project manager'));
+      if(pm?.name) await updateDoc('projects',pid,{project_manager_name:pm.name});
+    }
+
+    await auditLog('CHARTER_SAVED','artefact',artId,'Project Charter saved — planning artefacts populated',pid);
+
+    const populated=[];
+    if(scope.length)        populated.push('Scope Statement');
+    if(equipment.length)    populated.push('Equipment (Scope)');
+    if(deliverables.length) populated.push('Milestones');
+    if(assumptions.length)  populated.push('Requirements Register');
+    if(constraints.some(c=>c.description)) populated.push('Project Management Plan');
+    if(risks.some(r=>r.risk)) populated.push('Risk Register · Risk Management Plan');
+    if(team.some(t=>t.name)) populated.push('Resource Plan · RACI Matrix');
+
+    const msg=submit?'Charter submitted for approval!':'Charter saved!';
+    toast(`${msg}${populated.length?' Auto-populated: '+populated.join(', '):''}`, 'success', 5000);
     cm();if(S.proj)renderTab(S.ptab,S.proj);
   }catch(e){toast('Error: '+e.message,'error');}
 }
