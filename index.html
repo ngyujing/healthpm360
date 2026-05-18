@@ -1581,7 +1581,12 @@ async function saveSIT(pid, showToast=false){
 // ─── GLOBAL VIEWS ─────────────────────────────────────────────────────────
 async function risks(){
   $('tt').textContent='Risk Register';
-  const {documents:all}=await listDocs('risks',[Query.orderDesc('risk_score')]);
+  // Load risks + their projects in parallel
+  const [{documents:all},{documents:projs}]=await Promise.all([
+    listDocs('risks',[Query.orderDesc('risk_score')]),
+    listDocs('projects',[Query.equal('is_archived',false)])
+  ]);
+  const projMap=Object.fromEntries(projs.map(p=>[p.$id,p]));
   $('mc').innerHTML=`
   <div class="kg" style="margin-bottom:12px">
     <div class="kc kr"><div class="kl">Critical (≥15)</div><div class="kv r">${all.filter(r=>r.risk_score>=15&&!['closed','accepted'].includes(r.status)).length}</div></div>
@@ -1593,8 +1598,18 @@ async function risks(){
     <div class="ch"><span class="ct">All Project Risks</span></div>
     <div class="cb" style="padding:9px">
       <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search risks…" oninput="ft(this.value,'rktb')"></div></div>
-      <div class="tw"><table><thead><tr><th>ID</th><th>Title</th><th>Probability</th><th>Impact</th><th>Score</th><th>Response</th><th>Status</th><th>Owner</th></tr></thead>
-      <tbody id="rktb">${all.map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:170px;font-weight:500">${esc(r.title)}</td><td style="font-size:.72rem;text-transform:capitalize">${(r.probability||'').replace(/_/g,' ')}</td><td style="font-size:.72rem;text-transform:capitalize">${r.impact||'—'}</td><td>${rsBadge(r.risk_score)}</td><td style="font-size:.7rem">${r.response_strategy||'—'}</td><td>${badge(r.status)}</td><td style="font-size:.7rem">${esc(r.owner_name||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="te">No risks</td></tr>'}
+      <div class="tw"><table><thead><tr><th>Project</th><th>ID</th><th>Title</th><th>Probability</th><th>Impact</th><th>Score</th><th>Response</th><th>Status</th></tr></thead>
+      <tbody id="rktb">${all.map(r=>{const p=projMap[r.project_id];return `<tr>
+        <td style="min-width:120px">
+          ${p?`<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.68rem" onclick="nav('projDetail',{id:'${p.$id}'})">${esc(p.project_code)}</button>`:'<span style="color:var(--text3);font-size:.7rem">—</span>'}
+        </td>
+        <td class="mono">${esc(r.risk_id||'—')}</td>
+        <td class="trunc" style="max-width:150px;font-weight:500">${esc(r.title)}</td>
+        <td style="font-size:.72rem;text-transform:capitalize">${(r.probability||'').replace(/_/g,' ')}</td>
+        <td style="font-size:.72rem;text-transform:capitalize">${r.impact||'—'}</td>
+        <td>${rsBadge(r.risk_score)}</td>
+        <td style="font-size:.7rem">${r.response_strategy||'—'}</td>
+        <td>${badge(r.status)}</td></tr>`;}).join('')||'<tr><td colspan="8" class="te">No risks</td></tr>'}
       </tbody></table></div>
     </div>
   </div>`;
@@ -1602,26 +1617,34 @@ async function risks(){
 
 async function changes(){
   $('tt').textContent='Change Requests';
-  const {documents:all}=await listDocs('change_requests',[Query.orderDesc('$createdAt')]);
+  const [{documents:all},{documents:projs}]=await Promise.all([
+    listDocs('change_requests',[Query.orderDesc('$createdAt')]),
+    listDocs('projects',[Query.equal('is_archived',false)])
+  ]);
+  const projMap=Object.fromEntries(projs.map(p=>[p.$id,p]));
   const age=c=>Math.round((Date.now()-new Date(c.$createdAt))/86400000);
   $('mc').innerHTML=`
   <div class="card">
-    <div class="ch"><span class="ct">Change Request Register — CCB Workflow</span></div>
+    <div class="ch"><span class="ct">Change Request Register</span></div>
     <div class="cb" style="padding:9px">
       <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search…" oninput="ft(this.value,'crtb')"></div></div>
-      <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Days Δ</th><th>Status</th><th>Age</th><th>Actions</th></tr></thead>
-      <tbody id="crtb">${all.map(c=>`<tr>
+      <div class="tw"><table><thead><tr><th>Project</th><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Days Δ</th><th>Status</th><th>Age</th><th>Actions</th></tr></thead>
+      <tbody id="crtb">${all.map(c=>{const p=projMap[c.project_id];return `<tr>
+        <td style="min-width:120px">
+          ${p?`<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.68rem" onclick="nav('projDetail',{id:'${p.$id}'})">${esc(p.project_code)}</button>`:'<span style="color:var(--text3);font-size:.7rem">—</span>'}
+        </td>
         <td class="mono" style="color:var(--blue);cursor:pointer" onclick="viewCR('${c.$id}')">${esc(c.cr_number)}</td>
-        <td class="trunc" style="max-width:160px;font-weight:500">${esc(c.title)}</td>
+        <td class="trunc" style="max-width:140px;font-weight:500">${esc(c.title)}</td>
         <td>${badge(c.change_type)}</td>
         <td style="font-size:.72rem;${c.cost_impact>0?'color:var(--red)':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</td>
         <td style="text-align:center;font-size:.72rem;${c.schedule_impact_days>0?'color:var(--amber)':''}">${c.schedule_impact_days||0}d</td>
         <td>${badge(c.status)}</td>
         <td class="mono" style="font-size:.68rem;${age(c)>14?'color:var(--red)':''}">${age(c)}d</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="viewCR('${c.$id}')">View</button>
-          ${canDo(['pmo'])&&c.status==='submitted'?`<button class="btn btn-sm btn-primary" style="margin-left:3px" onclick="advCR('${c.$id}','ccb_review')">→ CCB</button>`:''}
-          ${canDo(['pmo'])&&c.status==='ccb_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprCR('${c.$id}')">Approve</button>`:''}
-        </td></tr>`).join('')||'<tr><td colspan="8" class="te">No change requests</td></tr>'}
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="viewCR('${c.$id}')">View</button>
+          ${canDo(['pmo'])&&c.status==='submitted'?`<button class="btn btn-sm btn-success" onclick="apprCR('${c.$id}')">Approve</button><button class="btn btn-sm btn-danger" onclick="rejCR('${c.$id}')">Reject</button>`:''}
+          ${c.status==='approved'?`<button class="btn btn-ghost btn-sm" onclick="markCRImplemented('${c.$id}')">Mark Done</button>`:''}
+        </td></tr>`;}).join('')||'<tr><td colspan="9" class="te">No change requests</td></tr>'}
       </tbody></table></div>
     </div>
   </div>`;
@@ -1629,28 +1652,59 @@ async function changes(){
 
 async function milestones(){
   $('tt').textContent='Milestones & Stage Gates';
-  const {documents:data}=await listDocs('milestones',[Query.orderAsc('planned_date')]);
+  const [{documents:data},{documents:projs}]=await Promise.all([
+    listDocs('milestones',[Query.orderAsc('planned_date')]),
+    listDocs('projects',[Query.equal('is_archived',false)])
+  ]);
+  const projMap=Object.fromEntries(projs.map(p=>[p.$id,p]));
   $('mc').innerHTML=`
   <div class="card">
     <div class="ch"><span class="ct">All Milestones</span></div>
-    <div class="tw"><table><thead><tr><th>Milestone</th><th>Planned</th><th>Actual</th><th>Gate?</th><th>Status</th><th>Gate Outcome</th></tr></thead><tbody>
-    ${data.map(m=>`<tr><td style="font-weight:500">${esc(m.name)}</td><td class="mono" style="font-size:.68rem">${fmtD(m.planned_date)}</td><td class="mono" style="font-size:.68rem">${fmtD(m.actual_date)}</td><td>${m.is_stage_gate?'<span class="badge bg-purple">Stage Gate</span>':'—'}</td><td>${badge(m.status)}</td><td>${m.gate_outcome?badge(m.gate_outcome):'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="te">No milestones</td></tr>'}
-    </tbody></table></div>
+    <div class="cb" style="padding:9px">
+      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search milestones…" oninput="ft(this.value,'mstb')"></div></div>
+      <div class="tw"><table><thead><tr><th>Project</th><th>Milestone</th><th>Planned</th><th>Actual</th><th>Gate?</th><th>Status</th><th>Outcome</th></tr></thead>
+      <tbody id="mstb">${data.map(m=>{const p=projMap[m.project_id];return `<tr>
+        <td style="min-width:120px">
+          ${p?`<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.68rem" onclick="nav('projDetail',{id:'${p.$id}'})">${esc(p.project_code)}</button>`:'<span style="color:var(--text3);font-size:.7rem">—</span>'}
+        </td>
+        <td style="font-weight:500;max-width:180px" class="trunc">${esc(m.name)}</td>
+        <td class="mono" style="font-size:.68rem">${fmtD(m.planned_date)}</td>
+        <td class="mono" style="font-size:.68rem">${fmtD(m.actual_date)}</td>
+        <td>${m.is_stage_gate?'<span class="badge bg-purple">Gate</span>':'—'}</td>
+        <td>${badge(m.status)}</td>
+        <td>${m.gate_outcome?badge(m.gate_outcome):'—'}</td></tr>`;}).join('')||'<tr><td colspan="7" class="te">No milestones</td></tr>'}
+      </tbody></table></div>
+    </div>
   </div>`;
 }
 
 async function artefacts(){
   $('tt').textContent='Artefact Library';
-  const {documents:data}=await listDocs('artefacts',[Query.orderDesc('$createdAt')]);
+  const [{documents:data},{documents:projs}]=await Promise.all([
+    listDocs('artefacts',[Query.orderDesc('$createdAt')]),
+    listDocs('projects',[Query.equal('is_archived',false)])
+  ]);
+  const projMap=Object.fromEntries(projs.map(p=>[p.$id,p]));
   $('mc').innerHTML=`
   <div class="card">
     <div class="ch"><span class="ct">All Artefacts (Version-Controlled)</span><span style="font-size:.72rem;color:var(--text3)">${data.length} total</span></div>
-    <div class="tw"><table><thead><tr><th>Type</th><th>Title</th><th>Version</th><th>Process Group</th><th>Status</th><th>Approved</th><th>Actions</th></tr></thead><tbody>
-    ${data.map(a=>`<tr><td><span class="badge bg-gray" style="font-size:.58rem">${esc((a.artefact_type||'').replace(/_/g,' '))}</span></td><td style="font-weight:500;max-width:180px" class="trunc">${esc(a.title)}</td><td class="mono">${esc(a.version)}</td><td style="font-size:.7rem">${esc(a.process_group||'—')}</td><td>${badge(a.status)}</td><td style="font-size:.7rem">${a.approved_at?fmtD(a.approved_at):'Pending'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="viewArt('${a.$id}')">View</button>
-        ${canDo(['pmo'])&&a.status==='in_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprArt('${a.$id}')">Approve</button>`:''}
-      </td></tr>`).join('')||'<tr><td colspan="7" class="te">No artefacts</td></tr>'}
-    </tbody></table></div>
+    <div class="cb" style="padding:9px">
+      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search artefacts…" oninput="ft(this.value,'arttb')"></div></div>
+      <div class="tw"><table><thead><tr><th>Project</th><th>Type</th><th>Title</th><th>Version</th><th>Status</th><th>Approved</th><th>Actions</th></tr></thead>
+      <tbody id="arttb">${data.map(a=>{const p=projMap[a.project_id];return `<tr>
+        <td style="min-width:120px">
+          ${p?`<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.68rem" onclick="nav('projDetail',{id:'${p.$id}'})">${esc(p.project_code)}</button>`:'<span style="color:var(--text3);font-size:.7rem">—</span>'}
+        </td>
+        <td><span class="badge bg-gray" style="font-size:.58rem">${esc((a.artefact_type||'').replace(/_/g,' '))}</span></td>
+        <td style="font-weight:500;max-width:160px" class="trunc">${esc(a.title)}</td>
+        <td class="mono">${esc(a.version)}</td>
+        <td>${badge(a.status)}</td>
+        <td style="font-size:.7rem">${a.approved_at?fmtD(a.approved_at):'Pending'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewArt('${a.$id}')">View</button>
+          ${canDo(['pmo'])&&a.status==='in_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprArt('${a.$id}')">Approve</button>`:''}
+        </td></tr>`;}).join('')||'<tr><td colspan="7" class="te">No artefacts</td></tr>'}
+      </tbody></table></div>
+    </div>
   </div>`;
 }
 
@@ -2180,16 +2234,60 @@ async function submitLL(pid){
 
 async function deleteProject(id, name){
   if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
-  if(!confirm(`DELETE PROJECT: "${name}"\n\nThis will permanently delete the project record.\nRelated data (artefacts, risks, etc.) will remain in the database but be unlinked.\n\nType DELETE to confirm.`)){return;}
-  const confirm2=window.prompt('Type DELETE to confirm permanent deletion:');
+  if(!confirm(`DELETE PROJECT: "${name}"\n\nThis will permanently delete the project AND all linked:\n• Artefacts\n• Risks\n• Issues\n• Change Requests\n• Milestones\n• Tasks\n• Stakeholders\n• Vendors\n• Decisions\n• Approvals\n• Baselines\n• Lessons Learned\n\nThis cannot be undone.`)) return;
+  const confirm2=window.prompt('Type DELETE to confirm:');
   if(confirm2!=='DELETE'){toast('Deletion cancelled','info');return;}
+
+  const btn=event?.target;
+  if(btn){btn.disabled=true;btn.textContent='Deleting…';}
+  toast('Deleting project and all linked data…','info',8000);
+
   try{
+    // All collections that have project_id field
+    const linkedCols=[
+      'artefacts','risks','issues','change_requests','milestones',
+      'tasks','stakeholders','vendors','decisions','approvals',
+      'baselines','lessons_learned'
+    ];
+
+    let totalDeleted=0;
+    for(const col of linkedCols){
+      try{
+        // Fetch all docs for this project (may need multiple pages)
+        let offset=0;
+        while(true){
+          const res=await db.listDocuments(DB_ID,col,[
+            Query.equal('project_id',id),
+            Query.limit(100),
+            Query.offset(offset)
+          ]);
+          if(!res.documents.length) break;
+          for(const doc of res.documents){
+            try{ await db.deleteDocument(DB_ID,col,doc.$id); totalDeleted++; }catch{}
+          }
+          if(res.documents.length<100) break;
+          offset+=100;
+        }
+      }catch(e){
+        // Collection may not have project_id or may be empty — continue
+        console.warn(`Skipping ${col}:`,e.message);
+      }
+    }
+
+    // Delete the project itself
     await db.deleteDocument(DB_ID,'projects',id);
-    await auditLog('PROJECT_DELETED','project',id,`Project deleted by ${S.profile.full_name}: ${name}`);
-    toast('Project deleted permanently','info');
+
+    await auditLog('PROJECT_DELETED','project',id,
+      `Project "${name}" deleted by ${S.profile.full_name}. ${totalDeleted} linked records removed.`);
+
+    toast(`Project deleted. ${totalDeleted} linked records removed.`,'success');
+    _projEditMode=false;
     if(S.view==='projDetail') await nav('projects');
     else await projects();
-  }catch(e){toast('Error: '+e.message,'error');}
+  }catch(e){
+    toast('Error: '+e.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='Delete';}
+  }
 }
 
 
