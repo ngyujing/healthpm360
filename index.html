@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HealthPM360 — Project Management Platform</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%230C2340'/><path fill='none' stroke='%230B8A82' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M12 3.5a8.5 8.5 0 00-5.879 2.357A8.5 8.5 0 003.5 8c0 4.142 2.784 7.612 6.5 8.69 3.716-1.078 6.5-4.548 6.5-8.69a8.5 8.5 0 00-2.121-5.643A8.5 8.5 0 0012 3.5z'/><polyline fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' points='9 11 11.5 13.5 15.5 9'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/appwrite@16"></script>
 <style>
@@ -25,6 +26,38 @@ input,select,textarea,button{font-family:inherit;font-size:inherit}
   --shm:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
   --shl:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
 }
+
+/* ─ dynamic table rows ─ */
+.dyn-row{display:flex;gap:6px;margin-bottom:5px;align-items:center}
+.dyn-row input,.dyn-row select,.dyn-row textarea{flex:1;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:.76rem;font-family:inherit}
+.dyn-row textarea{resize:none;height:52px}
+.dyn-row .rm{background:var(--red-bg);color:var(--red);border:none;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:.8rem;flex-shrink:0}
+.dyn-row .w80{flex:0 0 80px!important}
+.dyn-row .w120{flex:0 0 120px!important}
+.dyn-row .w160{flex:0 0 160px!important}
+.dyn-hdr{display:flex;gap:6px;margin-bottom:3px}
+.dyn-hdr span{flex:1;font-size:.63rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.dyn-hdr .w80{flex:0 0 80px!important}
+.dyn-hdr .w120{flex:0 0 120px!important}
+.dyn-hdr .w160{flex:0 0 160px!important}
+.dyn-hdr .w32{flex:0 0 32px!important}
+/* step nav */
+.step-nav{display:flex;gap:4px;margin-bottom:16px}
+.step-dot{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .2s}
+.step-dot.active{background:var(--blue)}
+.step-dot.done{background:var(--green)}
+.step-pane{display:none}.step-pane.active{display:block}
+/* resolve / status buttons */
+.iss-actions{display:flex;gap:4px}
+.btn-resolve{background:var(--green-bg);color:var(--green);border:none;border-radius:5px;padding:4px 9px;font-size:.7rem;font-weight:600;cursor:pointer}
+.btn-reopen{background:var(--amber-bg);color:var(--amber);border:none;border-radius:5px;padding:4px 9px;font-size:.7rem;font-weight:600;cursor:pointer}
+/* charter tabs */
+.ctabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:12px;overflow-x:auto}
+.ctab{padding:6px 11px;font-size:.73rem;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:4px 4px 0 0}
+.ctab:hover{color:var(--blue);background:var(--blue-light)}
+.ctab.active{color:var(--blue);border-bottom-color:var(--blue);background:var(--blue-light)}
+.cpane{display:none}.cpane.active{display:block}
+
 #ls{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--navy);
   background-image:radial-gradient(ellipse at 20% 20%,#1A3660 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,#0B8A82 0%,transparent 50%);
   position:fixed;inset:0;z-index:1000}
@@ -544,104 +577,499 @@ async function requests(){
   $('tt').textContent='Project Requests';
   if(canDo(['pmo','project_manager','project_sponsor']))$('ta').innerHTML=`<button class="btn btn-primary btn-sm" onclick="openReqModal()">+ New Request</button>`;
   const {documents:data}=await listDocs('project_requests',[Query.orderDesc('$createdAt')]);
+  const pending=data.filter(r=>r.status==='submitted').length;
   $('mc').innerHTML=`
   <div class="card">
-    <div class="ch"><span class="ct">All Project Requests</span><span style="font-size:.72rem;color:var(--text3)">${data.length} total</span></div>
+    <div class="ch"><span class="ct">Project Request Register <small style="font-weight:400;color:var(--text3);font-size:.72rem">(Based on PR Form v1.2)</small></span>
+      <span style="font-size:.72rem;color:var(--text3)">${pending>0?`<span class="badge bg-amber" style="margin-right:6px">${pending} pending</span>`:''}${data.length} total</span></div>
     <div class="cb" style="padding:9px">
-      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search…" oninput="ft(this.value,'rqtb')"></div></div>
+      <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search…" oninput="ft(this.value,'rqtb')"></div>
+      <select class="fsel" onchange="ftc(this.value,'rqtb',3)"><option value="">All Statuses</option><option>draft</option><option>submitted</option><option>approved</option><option>rejected</option></select></div>
       <div class="tw"><table><thead><tr><th>Req #</th><th>Title</th><th>Requestor</th><th>Status</th><th>Budget</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody id="rqtb">${data.map(r=>`<tr>
         <td class="mono" style="color:var(--blue);cursor:pointer" onclick="viewReq('${r.$id}')">${esc(r.request_number||'—')}</td>
-        <td style="max-width:190px"><div style="font-weight:600;font-size:.78rem">${esc(r.title)}</div><div style="font-size:.68rem;color:var(--text3)">${esc(r.requestor_department||'')}</div></td>
+        <td style="max-width:190px"><div style="font-weight:600;font-size:.78rem">${esc(r.title)}</div>
+          <div style="font-size:.68rem;color:var(--text3)">${esc(r.requestor_department||'')}</div></td>
         <td style="font-size:.76rem">${esc(r.requestor_name)}</td><td>${badge(r.status)}</td>
         <td style="font-size:.75rem">${r.initial_budget_estimate?fmtM(r.initial_budget_estimate):'—'}</td>
         <td class="mono" style="font-size:.68rem">${fmtD(r.$createdAt)}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">View</button>
-          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprReq('${r.$id}')">Approve</button>`:''}
+          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprReq('${r.$id}')">Approve →</button><button class="btn btn-sm btn-danger" style="margin-left:3px" onclick="rejectReq('${r.$id}')">Reject</button>`:''}
+          ${r.status==='approved'&&r.linked_project_id?`<button class="btn btn-ghost btn-sm" style="margin-left:3px;color:var(--green)" onclick="nav('projDetail',{id:'${r.linked_project_id}'})">→ Project</button>`:''}
         </td></tr>`).join('')||'<tr><td colspan="7" class="te">No requests</td></tr>'}
       </tbody></table></div>
     </div>
   </div>`;
 }
+
+function ftc(val,tbodyId,col){
+  document.querySelectorAll(`#${tbodyId} tr`).forEach(r=>{
+    if(!val){r.style.display='';return;}
+    const c=r.cells[col];r.style.display=(c&&c.textContent.toLowerCase().includes(val.toLowerCase()))?'':'none';
+  });
+}
+// ─── DYNAMIC TABLE HELPERS ────────────────────────────────────────────────
+function addDynRow(cid, hdrs, widths){
+  const c=document.getElementById(cid), i=c.children.length;
+  const div=document.createElement('div'); div.className='dyn-row';
+  div.innerHTML=hdrs.map((h,j)=>{
+    const w=widths&&widths[j]?` class="${widths[j]}"`:'';
+    return h==='inout'?`<select${w}><option>In</option><option>Out</option></select>`:
+           h==='date'?`<input type="date"${w}>`:
+           h==='level'?`<select${w}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="critical">Critical</option></select>`:
+           `<input placeholder="${h}"${w}>`;
+  }).join('')+`<button class="rm" onclick="this.parentElement.remove()">✕</button>`;
+  c.appendChild(div);
+}
+function getDynRows(cid, fields){
+  const rows=[];
+  document.querySelectorAll(`#${cid} .dyn-row`).forEach(row=>{
+    const inp=row.querySelectorAll('input,select');
+    const obj={};
+    fields.forEach((f,j)=>{obj[f]=inp[j]?.value?.trim()||'';});
+    if(Object.values(obj).some(v=>v)) rows.push(obj);
+  });
+  return rows;
+}
+function seedDynRows(cid, hdrs, widths, rows){
+  rows.forEach(r=>{
+    addDynRow(cid,hdrs,widths);
+    const last=document.querySelector(`#${cid} .dyn-row:last-child`);
+    const inp=last.querySelectorAll('input,select');
+    Object.values(r).forEach((v,j)=>{if(inp[j])inp[j].value=v;});
+  });
+}
+function dynHdr(labels,widths){
+  return `<div class="dyn-hdr">${labels.map((l,i)=>`<span class="${(widths&&widths[i])||''}">${l}</span>`).join('')}<span class="w32"></span></div>`;
+}
+
+// ─── REQUEST FORM v1.2 ────────────────────────────────────────────────────
+let _rStep=1;
 function openReqModal(){
-  om('New Project Request',`
-  <div style="background:var(--blue-light);border-left:3px solid var(--blue);padding:8px 11px;border-radius:4px;font-size:.75rem;color:var(--blue-h);margin-bottom:13px">Official entry point for all new project proposals. Complete all mandatory fields.</div>
-  <div class="fgrid">
-    <div class="fg"><label>Requestor Name <span class="req">*</span></label><input id="rf-n" value="${esc(S.profile?.full_name||'')}"></div>
-    <div class="fg"><label>Email <span class="req">*</span></label><input id="rf-e" type="email" value="${esc(S.profile?.email||'')}"></div>
-    <div class="fg"><label>Department</label><input id="rf-d" value="${esc(S.profile?.department||'')}"></div>
-    <div class="fg"><label>Urgency</label><select id="rf-u"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
-    <div class="fg s2"><label>Project Title <span class="req">*</span></label><input id="rf-t" required></div>
-    <div class="fg s2"><label>Business Problem / Opportunity <span class="req">*</span></label><textarea id="rf-p" rows="3" required></textarea></div>
-    <div class="fg s2"><label>High-Level Scope <span class="req">*</span></label><textarea id="rf-s" rows="3" required></textarea></div>
-    <div class="fg s2"><label>Expected Benefits <span class="req">*</span></label><textarea id="rf-b" rows="2" required></textarea></div>
+  _rStep=1;
+  om('New Project Request — v1.2',`
+  <div class="step-nav" id="sr-nav">
+    <div class="step-dot active" id="sd1"></div>
+    <div class="step-dot" id="sd2"></div>
+    <div class="step-dot" id="sd3"></div>
   </div>
-  <div class="fsec"><h4>Financials &amp; Timeline</h4>
+
+  <!-- STEP 1: Project Info -->
+  <div class="step-pane active" id="sp1">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Step 1 of 3 — Project Information</div>
     <div class="fgrid">
-      <div class="fg"><label>Budget Estimate (S$)</label><input id="rf-bud" type="number" min="0"></div>
-      <div class="fg"><label>Funding Source</label><input id="rf-fs" placeholder="CAPEX, MOH Grant…"></div>
+      <div class="fg"><label>PO #</label><input id="rf-po" placeholder="PO-2025-001"></div>
+      <div class="fg"><label>Date</label><input id="rf-date" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="fg"><label>Sales Manager <span class="req">*</span></label><input id="rf-sm" value="${esc(S.profile?.full_name||'')}"></div>
+      <div class="fg"><label>Institution / Client <span class="req">*</span></label><input id="rf-inst" placeholder="e.g. Singapore General Hospital"></div>
+      <div class="fg s2"><label>Project Title <span class="req">*</span></label><input id="rf-t" required></div>
+    </div>
+    <div class="fsec"><h4>Project Overview</h4>
+      <div class="fg"><label>Background <span class="req">*</span> <span style="font-size:.68rem;color:var(--text3)">(3–5 sentences — accessible to executive stakeholders)</span></label>
+        <textarea id="rf-bg" rows="4" required placeholder="Provide a concise high-level overview of the project…"></textarea></div>
+      <div class="fg"><label>Objectives</label>
+        <textarea id="rf-obj" rows="3" placeholder="List the key project objectives…"></textarea></div>
+    </div>
+    <div class="fsec"><h4>Business Case</h4>
+      <div class="fg"><label>Business Case <span class="req">*</span> <span style="font-size:.68rem;color:var(--text3)">(business need, market conditions, strategy alignment)</span></label>
+        <textarea id="rf-bc" rows="4" required placeholder="Describe the business need or opportunity that justifies this project…"></textarea></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Commercial -->
+  <div class="step-pane" id="sp2">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Step 2 of 3 — Commercial &amp; Schedule</div>
+    <div class="fgrid">
+      <div class="fg"><label>Sales Revenue (S$)</label><input id="rf-rev" type="number" min="0"></div>
+      <div class="fg"><label>Urgency</label><select id="rf-u"><option value="normal" selected>Normal</option><option value="low">Low</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
       <div class="fg"><label>Target Start</label><input id="rf-ts" type="date"></div>
       <div class="fg"><label>Target End</label><input id="rf-te" type="date"></div>
     </div>
+
+    <div class="fsec"><h4>Products / Services</h4>
+      ${dynHdr(['Description','Qty','Remarks'],['','w80','w120'])}
+      <div id="rf-prod"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-prod',['Description','Qty','Remarks'],['','w80','w120'])">+ Add Product</button>
+    </div>
+
+    <div class="fsec"><h4>Project Milestones</h4>
+      ${dynHdr(['Description','Remarks'],['','w160'])}
+      <div id="rf-ms"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-ms',['Description','Remarks'],['','w160'])">+ Add Milestone</button>
+    </div>
+
+    <div class="fsec"><h4>Success Criteria (KPIs)</h4>
+      ${dynHdr(['Description','Measurement Method','Acceptance Threshold'],['','w160','w160'])}
+      <div id="rf-kpi"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-kpi',['Description','Method','Threshold'],['','w160','w160'])">+ Add KPI</button>
+    </div>
   </div>
-  <div class="fsec"><h4>Healthcare / Regulatory Flags</h4>
-    <div class="fchk"><input type="checkbox" id="rf-reg"><label for="rf-reg">Regulatory / compliance requirement (MOH, PDPA)</label></div>
-    <div class="fchk"><input type="checkbox" id="rf-phi"><label for="rf-phi">Patient Health Information (PHI) involved</label></div>
-    <div class="fchk"><input type="checkbox" id="rf-moh"><label for="rf-moh">MOH reporting required</label></div>
+
+  <!-- STEP 3: Admin -->
+  <div class="step-pane" id="sp3">
+    <div style="font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Step 3 of 3 — Stakeholders, Maintenance &amp; Finance</div>
+
+    <div class="fsec" style="border-top:none;padding-top:0"><h4>Stakeholders</h4>
+      ${dynHdr(['Institution','Role','Names'],['w160','w160',''])}
+      <div id="rf-stk"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="addDynRow('rf-stk',['Institution','Role','Names'],['w160','w160',''])">+ Add Stakeholder</button>
+    </div>
+
+    <div class="fsec"><h4>Maintenance Information</h4>
+      <div style="margin-bottom:8px">
+        <div style="font-size:.73rem;font-weight:600;color:var(--text2);margin-bottom:5px">Maintenance Type</div>
+        <div class="fchk"><input type="radio" name="maint" id="m-na" value="NOT_APPLICABLE" checked><label for="m-na">Not Applicable</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-pm" value="PM_ONLY"><label for="m-pm">Non-Comprehensive: Preventive Maintenance only (no spare parts)</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-pmu" value="PM_UNLIMITED"><label for="m-pmu">Non-Comprehensive: PM + Unlimited Calls (no spare parts)</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-pms" value="PM_SOME"><label for="m-pms">Non-Comprehensive: PM + Unlimited Calls + Some spare parts</label></div>
+        <div class="fchk"><input type="radio" name="maint" id="m-comp" value="COMPREHENSIVE"><label for="m-comp">Comprehensive: PM + Unlimited Calls + All spare parts</label></div>
+      </div>
+      <div class="fgrid">
+        <div class="fg"><label>Frequency</label>
+          <select id="rf-mf"><option value="">—</option><option value="quarterly">Quarterly (4×/year)</option><option value="biannual">Bi-Annually (2×/year)</option></select></div>
+        <div class="fg"><label>Warranty Period</label>
+          <select id="rf-wy"><option value="">—</option><option value="1">1 Year</option><option value="2">2 Years</option></select></div>
+        <div class="fg s2"><label>Maintenance Notes</label><input id="rf-mn" placeholder="Additional notes…"></div>
+      </div>
+    </div>
+
+    <div class="fsec"><h4>Finance Information</h4>
+      <div class="fgrid">
+        <div class="fg"><label>Delivery (DO) No.</label><input id="rf-do"></div>
+        <div class="fg"><label>UAT Sign-off</label><input id="rf-uat"></div>
+        <div class="fg"><label>Commission</label><input id="rf-com"></div>
+        <div class="fg"><label>Warranty Period</label><input id="rf-wp" placeholder="e.g. 1 year from handover"></div>
+      </div>
+    </div>
+
+    <div class="fsec"><h4>Healthcare / Regulatory Flags</h4>
+      <div class="fchk"><input type="checkbox" id="rf-reg"><label for="rf-reg">Regulatory / compliance requirement (MOH, PDPA)</label></div>
+      <div class="fchk"><input type="checkbox" id="rf-phi"><label for="rf-phi">Patient Health Information (PHI) involved</label></div>
+      <div class="fchk"><input type="checkbox" id="rf-moh"><label for="rf-moh">MOH reporting required</label></div>
+    </div>
   </div>`,
-  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitReq()">Submit Request</button>`,
-  {lg:true,sub:'All submissions are permanently logged'});
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-secondary" id="rf-prev" onclick="reqStep(-1)" style="display:none">← Prev</button>
+   <button class="btn btn-primary" id="rf-next" onclick="reqStep(1)">Next →</button>
+   <button class="btn btn-success" id="rf-sub" onclick="submitReq()" style="display:none">Submit Request</button>`,
+  {lg:true,sub:'Project Request Form v1.2'});
+
+  // seed default stakeholder rows
+  setTimeout(()=>{
+    seedDynRows('rf-stk',['Institution','Role','Names'],['w160','w160',''],[
+      {institution:'Omni-Health',role:'',names:''},
+      {institution:'Synapxe',role:'',names:''}
+    ]);
+    // seed one empty product/milestone/kpi row
+    addDynRow('rf-prod',['Description','Qty','Remarks'],['','w80','w120']);
+    addDynRow('rf-ms',['Description','Remarks'],['','w160']);
+    addDynRow('rf-kpi',['Description','Method','Threshold'],['','w160','w160']);
+  },100);
 }
+
+function reqStep(dir){
+  _rStep=Math.max(1,Math.min(3,_rStep+dir));
+  [1,2,3].forEach(i=>{
+    $(`sp${i}`)?.classList.toggle('active',i===_rStep);
+    $(`sd${i}`)?.classList.toggle('active',i===_rStep);
+    $(`sd${i}`)?.classList.toggle('done',i<_rStep);
+  });
+  $('rf-prev').style.display=_rStep>1?'':'none';
+  $('rf-next').style.display=_rStep<3?'':'none';
+  $('rf-sub').style.display=_rStep===3?'':'none';
+}
+
 async function submitReq(){
   const v=id=>$(id)?.value?.trim();
-  if(!v('rf-t')||!v('rf-p')||!v('rf-s')||!v('rf-b')){toast('Fill mandatory fields (*)','error');return;}
+  if(!v('rf-sm')||!v('rf-inst')||!v('rf-t')||!v('rf-bg')||!v('rf-bc')){
+    toast('Fill mandatory fields (marked *)','error');reqStep(-(_rStep-1));return;
+  }
   try{
-    await createDoc('project_requests',{request_number:genId('REQ'),requestor_id:S.profile.$id,requestor_name:v('rf-n')||S.profile.full_name,requestor_email:v('rf-e')||S.profile.email,requestor_department:v('rf-d'),urgency_level:v('rf-u'),title:v('rf-t'),business_problem:v('rf-p'),high_level_scope:v('rf-s'),expected_benefits:v('rf-b'),initial_budget_estimate:parseFloat(v('rf-bud'))||0,funding_source:v('rf-fs'),target_start_date:v('rf-ts')||'',target_end_date:v('rf-te')||'',regulatory_indicator:$('rf-reg').checked,phi_involved:$('rf-phi').checked,moh_reporting_required:$('rf-moh').checked,status:'submitted'});
-    await auditLog('REQUEST_SUBMITTED','project_request',null,`Submitted: ${v('rf-t')}`);
+    const reqDoc=await createDoc('project_requests',{
+      request_number: genId('REQ'),
+      requestor_id:   S.profile.$id,
+      requestor_name: v('rf-sm')||S.profile.full_name,
+      requestor_email:S.profile.email,
+      title:          v('rf-t'),
+      business_problem: v('rf-bg'),
+      high_level_scope: v('rf-bc'),
+      expected_benefits: v('rf-obj')||'',
+      initial_budget_estimate: parseFloat(v('rf-rev'))||0,
+      target_start_date: v('rf-ts')||'',
+      target_end_date:   v('rf-te')||'',
+      urgency_level:     v('rf-u'),
+      regulatory_indicator: $('rf-reg').checked,
+      phi_involved:         $('rf-phi').checked,
+      moh_reporting_required: $('rf-moh').checked,
+      status: 'submitted'
+    });
+
+    // Save v1.2 extended data
+    const maintType=document.querySelector('input[name="maint"]:checked')?.value||'NOT_APPLICABLE';
+    await createDoc('request_v12_data',{
+      request_id:   reqDoc.$id,
+      po_number:    v('rf-po')||'',
+      sales_manager:v('rf-sm')||'',
+      institution:  v('rf-inst')||'',
+      background:   v('rf-bg')||'',
+      objectives:   v('rf-obj')||'',
+      sales_revenue:v('rf-rev')||'',
+      products_json:  JSON.stringify(getDynRows('rf-prod',['description','qty','remarks'])),
+      milestones_json:JSON.stringify(getDynRows('rf-ms',['description','remarks'])),
+      kpi_json:       JSON.stringify(getDynRows('rf-kpi',['description','method','threshold'])),
+      req_stakeholders_json:JSON.stringify(getDynRows('rf-stk',['institution','role','names'])),
+      maintenance_json:JSON.stringify({type:maintType,frequency:v('rf-mf'),warranty:v('rf-wy'),notes:v('rf-mn')}),
+      finance_json:JSON.stringify({do_number:v('rf-do'),uat:v('rf-uat'),commission:v('rf-com'),warranty_period:v('rf-wp')})
+    });
+
+    await auditLog('REQUEST_SUBMITTED','project_request',reqDoc.$id,`Submitted: ${v('rf-t')}`);
     toast('Request submitted!','success');cm();updateBadges();await requests();
   }catch(e){toast('Error: '+e.message,'error');}
 }
+
 async function viewReq(id){
   const r=await getDoc('project_requests',id);
-  const canA=canDo(['pmo'])&&['submitted','pmo_review'].includes(r.status);
+  // Try to load extended v12 data
+  let v12=null;
+  try{
+    const res=await listDocs('request_v12_data',[Query.equal('request_id',id)]);
+    if(res.documents.length) v12=res.documents[0];
+  }catch{}
+
+  const safeParse=(s,def=[])=>{try{return JSON.parse(s||'[]');}catch{return def;}};
+  const products  = v12 ? safeParse(v12.products_json)   : [];
+  const mss       = v12 ? safeParse(v12.milestones_json) : [];
+  const kpis      = v12 ? safeParse(v12.kpi_json)        : [];
+  const stks      = v12 ? safeParse(v12.req_stakeholders_json) : [];
+  const maint     = v12 ? safeParse(v12.maintenance_json,{})   : {};
+  const fin       = v12 ? safeParse(v12.finance_json,{})        : {};
+
+  const canA=canDo(['pmo'])&&r.status==='submitted';
   om(`Request: ${r.request_number||'—'}`,`
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
-    <div>
-      <div class="dsec"><h4>Requestor</h4>
-        <div class="dr"><span class="dl">Name</span><span class="dv">${esc(r.requestor_name)}</span></div>
-        <div class="dr"><span class="dl">Email</span><span class="dv">${esc(r.requestor_email)}</span></div>
-        <div class="dr"><span class="dl">Department</span><span class="dv">${esc(r.requestor_department||'—')}</span></div>
-        <div class="dr"><span class="dl">Urgency</span><span class="dv">${badge(r.urgency_level)}</span></div>
-        <div class="dr"><span class="dl">Status</span><span class="dv">${badge(r.status)}</span></div>
-        <div class="dr"><span class="dl">Submitted</span><span class="dv">${fmtD(r.$createdAt)}</span></div>
-        <div class="dr"><span class="dl">Budget Est.</span><span class="dv">${fmtM(r.initial_budget_estimate)}</span></div>
-        <div class="dr"><span class="dl">Target Start</span><span class="dv">${fmtD(r.target_start_date)}</span></div>
+  <div class="ctabs">
+    <div class="ctab active" onclick="swCTab(this,'rc1')">Overview</div>
+    <div class="ctab" onclick="swCTab(this,'rc2')">Commercial</div>
+    <div class="ctab" onclick="swCTab(this,'rc3')">Admin</div>
+    ${canA?`<div class="ctab" onclick="swCTab(this,'rc4')">PMO Review</div>`:''}
+  </div>
+
+  <div class="cpane active" id="rc1">
+    <div class="g2" style="gap:11px">
+      <div>
+        <div class="dsec"><h4>Request Details</h4>
+          <div class="dr"><span class="dl">Request #</span><span class="dv mono">${esc(r.request_number)}</span></div>
+          <div class="dr"><span class="dl">PO #</span><span class="dv">${esc(v12?.po_number||'—')}</span></div>
+          <div class="dr"><span class="dl">Date</span><span class="dv">${fmtD(r.$createdAt)}</span></div>
+          <div class="dr"><span class="dl">Sales Manager</span><span class="dv">${esc(v12?.sales_manager||r.requestor_name)}</span></div>
+          <div class="dr"><span class="dl">Institution</span><span class="dv">${esc(v12?.institution||'—')}</span></div>
+          <div class="dr"><span class="dl">Status</span><span class="dv">${badge(r.status)}</span></div>
+          <div class="dr"><span class="dl">Urgency</span><span class="dv">${badge(r.urgency_level)}</span></div>
+        </div>
+        <div class="dsec"><h4>Healthcare Flags</h4>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${r.regulatory_indicator?`<span class="badge bg-amber">Regulatory</span>`:''}
+            ${r.phi_involved?`<span class="badge bg-red">PHI</span>`:''}
+            ${r.moh_reporting_required?`<span class="badge bg-purple">MOH Reporting</span>`:''}
+            ${!r.regulatory_indicator&&!r.phi_involved&&!r.moh_reporting_required?'<span style="color:var(--text3);font-size:.75rem">None</span>':''}
+          </div>
+        </div>
       </div>
-      <div class="dsec"><h4>Healthcare Flags</h4><div style="display:flex;flex-wrap:wrap;gap:5px">
-        ${r.regulatory_indicator?`<span class="badge bg-amber">Regulatory</span>`:''}
-        ${r.phi_involved?`<span class="badge bg-red">PHI Involved</span>`:''}
-        ${r.moh_reporting_required?`<span class="badge bg-purple">MOH Reporting</span>`:''}
-        ${!r.regulatory_indicator&&!r.phi_involved&&!r.moh_reporting_required?'<span style="color:var(--text3);font-size:.75rem">None flagged</span>':''}
-      </div></div>
-    </div>
-    <div>
-      <div class="dsec"><h4>Business Problem</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem)}</p></div>
-      <div class="dsec"><h4>Scope</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.high_level_scope)}</p></div>
-      <div class="dsec"><h4>Expected Benefits</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.expected_benefits)}</p></div>
-      ${r.pmo_review_notes?`<div class="dsec"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
+      <div>
+        <div class="dsec"><h4>Background</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem)}</p></div>
+        <div class="dsec"><h4>Objectives</h4><p style="font-size:.78rem;line-height:1.6">${esc(v12?.objectives||r.expected_benefits||'—')}</p></div>
+        <div class="dsec"><h4>Business Case</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.high_level_scope)}</p></div>
+      </div>
     </div>
   </div>
-  ${canA?`<div class="fsec"><h4>PMO Decision</h4><div class="fg"><label>Review Notes</label><textarea id="pmn" rows="2"></textarea></div></div>`:''}`,
+
+  <div class="cpane" id="rc2">
+    <div class="g2" style="gap:11px">
+      <div>
+        <div class="dsec"><h4>Schedule</h4>
+          <div class="dr"><span class="dl">Sales Revenue</span><span class="dv">${v12?.sales_revenue?'S$'+Number(v12.sales_revenue).toLocaleString():'—'}</span></div>
+          <div class="dr"><span class="dl">Target Start</span><span class="dv">${fmtD(r.target_start_date)}</span></div>
+          <div class="dr"><span class="dl">Target End</span><span class="dv">${fmtD(r.target_end_date)}</span></div>
+        </div>
+        <div class="dsec"><h4>Products / Services</h4>
+          ${products.length?`<table style="width:100%;border-collapse:collapse"><thead><tr><th style="font-size:.62rem;padding:5px">Description</th><th style="font-size:.62rem;padding:5px">Qty</th><th style="font-size:.62rem;padding:5px">Remarks</th></tr></thead><tbody>
+          ${products.map(p=>`<tr><td style="padding:5px;font-size:.75rem">${esc(p.description)}</td><td style="padding:5px;font-size:.75rem">${esc(p.qty)}</td><td style="padding:5px;font-size:.75rem">${esc(p.remarks)}</td></tr>`).join('')}</tbody></table>`:
+          '<p style="color:var(--text3);font-size:.75rem">No products listed</p>'}
+        </div>
+      </div>
+      <div>
+        <div class="dsec"><h4>Milestones</h4>
+          ${mss.length?mss.map(m=>`<div class="dr"><span class="dl trunc">${esc(m.description)}</span><span class="dv" style="font-size:.73rem;color:var(--text2)">${esc(m.remarks)}</span></div>`).join(''):'<p style="color:var(--text3);font-size:.75rem">No milestones</p>'}
+        </div>
+        <div class="dsec"><h4>Success Criteria (KPIs)</h4>
+          ${kpis.length?`<table style="width:100%;border-collapse:collapse"><thead><tr><th style="font-size:.62rem;padding:5px">Description</th><th style="font-size:.62rem;padding:5px">Method</th><th style="font-size:.62rem;padding:5px">Threshold</th></tr></thead><tbody>
+          ${kpis.map(k=>`<tr><td style="padding:5px;font-size:.75rem">${esc(k.description)}</td><td style="padding:5px;font-size:.75rem">${esc(k.method)}</td><td style="padding:5px;font-size:.75rem">${esc(k.threshold)}</td></tr>`).join('')}</tbody></table>`:
+          '<p style="color:var(--text3);font-size:.75rem">No KPIs listed</p>'}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cpane" id="rc3">
+    <div class="g2" style="gap:11px">
+      <div>
+        <div class="dsec"><h4>Stakeholders</h4>
+          ${stks.length?stks.map(s=>`<div class="dr"><span class="dl trunc" style="width:120px">${esc(s.institution)}</span><span class="dv" style="font-size:.73rem"><strong>${esc(s.role)}</strong> ${esc(s.names)}</span></div>`).join(''):'<p style="color:var(--text3);font-size:.75rem">No stakeholders</p>'}
+        </div>
+        <div class="dsec"><h4>Maintenance</h4>
+          <div class="dr"><span class="dl">Type</span><span class="dv" style="font-size:.73rem">${esc((maint.type||'').replace(/_/g,' '))}</span></div>
+          <div class="dr"><span class="dl">Frequency</span><span class="dv">${esc(maint.frequency||'—')}</span></div>
+          <div class="dr"><span class="dl">Warranty</span><span class="dv">${maint.warranty?maint.warranty+' year(s)':'—'}</span></div>
+          ${maint.notes?`<div class="dr"><span class="dl">Notes</span><span class="dv" style="font-size:.73rem">${esc(maint.notes)}</span></div>`:''}
+        </div>
+      </div>
+      <div>
+        <div class="dsec"><h4>Finance</h4>
+          <div class="dr"><span class="dl">DO Number</span><span class="dv">${esc(fin.do_number||'—')}</span></div>
+          <div class="dr"><span class="dl">UAT Sign-off</span><span class="dv">${esc(fin.uat||'—')}</span></div>
+          <div class="dr"><span class="dl">Commission</span><span class="dv">${esc(fin.commission||'—')}</span></div>
+          <div class="dr"><span class="dl">Warranty Period</span><span class="dv">${esc(fin.warranty_period||'—')}</span></div>
+        </div>
+        ${r.pmo_review_notes?`<div class="dsec"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
+        ${r.status==='approved'&&r.linked_project_id?`<div style="margin-top:10px"><button class="btn btn-success btn-sm" onclick="cm();nav('projDetail',{id:'${r.linked_project_id}'})">→ View Created Project</button></div>`:''}
+      </div>
+    </div>
+  </div>
+
+  ${canA?`<div class="cpane" id="rc4">
+    <div class="fg"><label>PMO Review Notes</label><textarea id="pmn" rows="3" placeholder="Enter review notes or rejection reason…"></textarea></div>
+  </div>`:''}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
-   ${canA?`<button class="btn btn-danger" onclick="rejectReq('${r.$id}')">Reject</button><button class="btn btn-success" onclick="apprReq('${r.$id}')">Approve</button>`:''}`,
+   ${canA?`<button class="btn btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>
+   <button class="btn btn-success" onclick="apprReq('${r.$id}')">Approve & Create Project</button>`:''}`,
   {lg:true,sub:r.title});
 }
+
+function swCTab(el,paneId){
+  const modal=el.closest('.mbody');
+  modal.querySelectorAll('.ctab').forEach(t=>t.classList.remove('active'));
+  modal.querySelectorAll('.cpane').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(paneId)?.classList.add('active');
+}
+
 async function apprReq(id){
   const notes=$('pmn')?.value||'';
-  await updateDoc('project_requests',id,{status:'approved',pmo_review_notes:notes,pmo_reviewed_by:S.profile.$id,approved_at:new Date().toISOString()});
-  await auditLog('REQUEST_APPROVED','project_request',id,'Approved by PMO');
-  toast('Request approved!','success');cm();updateBadges();await requests();
+  try{
+    // 1. Approve the request
+    await updateDoc('project_requests',id,{
+      status:'approved', pmo_review_notes:notes,
+      pmo_reviewed_by:S.profile.$id, approved_at:new Date().toISOString()
+    });
+
+    // 2. Load request + v12 data
+    const r=await getDoc('project_requests',id);
+    let v12=null;
+    try{const res=await listDocs('request_v12_data',[Query.equal('request_id',id)]);if(res.documents.length)v12=res.documents[0];}catch{}
+
+    const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+    const kpis=v12?safeParse(v12.kpi_json):[];
+    const mss=v12?safeParse(v12.milestones_json):[];
+
+    // 3. Auto-create project
+    const projCode='PROJ-'+new Date().getFullYear()+'-'+String(Date.now()).slice(-4);
+    const proj=await createDoc('projects',{
+      project_code:       projCode,
+      name:               r.title,
+      description:        r.business_problem,
+      status:             'initiation',
+      client_organisation: v12?.institution||'',
+      planned_start_date: r.target_start_date||'',
+      planned_end_date:   r.target_end_date||'',
+      planned_budget:     r.initial_budget_estimate||0,
+      actual_cost:        0,
+      health_status:      'green',
+      baseline_locked:    false,
+      project_manager_id: S.profile.$id,
+      project_manager_name:S.profile.full_name,
+      healthcare_sensitivity: r.phi_involved||false,
+      moh_reporting_required: r.moh_reporting_required||false,
+      sensitivity_class:  r.phi_involved?'confidential':'internal',
+      is_archived:        false,
+      created_by:         S.profile.$id
+    });
+
+    // 4. Link project to request
+    await updateDoc('project_requests',id,{linked_project_id:proj.$id});
+
+    // 5. Auto-create initial artefacts
+    // Business Case
+    await createDoc('artefacts',{
+      project_id:   proj.$id,
+      artefact_type:'business_case',
+      title:        'Business Case — '+r.title,
+      description:  JSON.stringify({
+        background:   r.business_problem,
+        objectives:   v12?.objectives||r.expected_benefits||'',
+        business_case:r.high_level_scope,
+        sales_revenue:v12?.sales_revenue||'',
+        benefits:     r.expected_benefits||''
+      }),
+      version:'1.0', status:'draft', process_group:'initiation',
+      owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+    });
+
+    // Project Charter placeholder
+    await createDoc('artefacts',{
+      project_id:   proj.$id,
+      artefact_type:'project_charter',
+      title:        'Project Charter — '+r.title,
+      description:  JSON.stringify({
+        _template:true,
+        scope:[],equipment:[],deliverables:[],
+        assumptions:[],constraints:[
+          {type:'Budget',description:'',impact:''},
+          {type:'Schedule',description:'',impact:''},
+          {type:'Resources',description:'',impact:''},
+          {type:'Technology',description:'',impact:''},
+          {type:'Regulatory',description:'',impact:''}
+        ],
+        risks:[],
+        team:[
+          {position:'Project Manager',name:'',remarks:''},
+          {position:'Project Lead',name:'',remarks:''},
+          {position:'IT Engineer',name:'',remarks:''},
+          {position:'Engineer 1',name:'',remarks:''},
+          {position:'Engineer 2',name:'',remarks:''}
+        ]
+      }),
+      version:'1.0', status:'draft', process_group:'initiation',
+      owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+    });
+
+    // 6. Seed milestones from request
+    for(const m of mss){
+      if(m.description) await createDoc('milestones',{
+        project_id:proj.$id, name:m.description,
+        description:m.remarks||'', phase:'', planned_date:'',
+        status:'upcoming', is_stage_gate:false
+      });
+    }
+
+    // 7. Seed KPIs into requirements_register artefact description
+    if(kpis.length){
+      await createDoc('artefacts',{
+        project_id:   proj.$id,
+        artefact_type:'requirements_register',
+        title:        'Requirements Register — '+r.title,
+        description:  JSON.stringify({kpis}),
+        version:'1.0', status:'draft', process_group:'planning',
+        owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+      });
+    }
+
+    await auditLog('REQUEST_APPROVED','project_request',id,`Approved → Project ${projCode} created`,proj.$id);
+    toast('Request approved! Project created automatically.','success');
+    cm();updateBadges();
+    // Navigate to the new project
+    setTimeout(()=>nav('projDetail',{id:proj.$id}),300);
+  }catch(e){toast('Error: '+e.message,'error');}
 }
+
 async function rejectReq(id){
   const notes=$('pmn')?.value||'';
   if(!notes){toast('Provide rejection reason in notes','error');return;}
@@ -811,13 +1239,28 @@ async function tInit(p,el){
     listDocs('stakeholders',[Query.equal('project_id',p.$id)]),
     listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')])
   ]);
+  const charter=ar.documents.find(a=>a.artefact_type==='project_charter');
   const types=[{t:'business_case',l:'Business Case'},{t:'benefits_management_plan',l:'Benefits Mgmt Plan'},{t:'project_charter',l:'Project Charter'},{t:'stakeholder_register',l:'Stakeholder Register'},{t:'raid_log',l:'RAID Log'}];
+  const charterJson=charter?encodeURIComponent(JSON.stringify({$id:charter.$id,description:charter.description,status:charter.status,project_id:charter.project_id})):'';
   el.innerHTML=`
+  <div style="background:${charter?charter.status==='approved'?'var(--green-bg)':'var(--blue-light)':'var(--amber-bg)'};border-left:4px solid ${charter?charter.status==='approved'?'var(--green)':'var(--blue)':'var(--amber)'};border-radius:8px;padding:12px 15px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:.8rem;font-weight:700;color:${charter?charter.status==='approved'?'var(--green)':'var(--blue)':'var(--amber)'}">
+        ${charter?charter.status==='approved'?'✓ Project Charter Approved':'📝 Project Charter — '+charter.status.replace(/_/g,' '):'⚠ Project Charter Not Started'}
+      </div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:2px">
+        ${charter?'Contains: Scope · Equipment · Deliverables · Assumptions · Constraints · Risks · Project Team':'Complete the Project Charter to auto-populate planning artefacts and registers.'}
+      </div>
+    </div>
+    <button class="btn ${charter?'btn-ghost':'btn-primary'} btn-sm" onclick="openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))">
+      ${charter?'Edit Charter →':'Start Charter →'}
+    </button>
+  </div>
   <div class="g2" style="gap:11px;margin-bottom:11px">
     <div class="card">
       <div class="ch"><span class="ct">Initiation Artefacts</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','initiation')">+ Add</button>`:''}</div>
       <div class="cb" style="padding:9px"><div class="ag">
-        ${types.map(at=>{const f=ar.documents.find(a=>a.artefact_type===at.t);return `<div class="acard" onclick="${f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','initiation','${at.t}')`}"><div class="at">${at.t.replace(/_/g,' ')}</div><div class="an">${f?esc(f.title):at.l}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.68rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
+        ${types.map(at=>{const f=ar.documents.find(a=>a.artefact_type===at.t);return `<div class="acard" onclick="${at.t==='project_charter'?`openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))`:(f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','initiation','${at.t}')`)}">${at.t==='project_charter'?`<div style="position:absolute;top:6px;right:6px;font-size:.6rem">${charter?.status==='approved'?'✓':''}</div>`:''}<div class="at">${at.t.replace(/_/g,' ')}</div><div class="an">${f?esc(f.title):at.l}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.68rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
       </div></div>
     </div>
     <div class="card">
@@ -829,11 +1272,28 @@ async function tInit(p,el){
   </div>
   <div class="card">
     <div class="ch"><span class="ct">RAID Log (Risks, Assumptions, Issues, Dependencies)</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log Issue</button>`:''}</div>
-    <div class="tw"><table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Severity</th><th>Status</th></tr></thead><tbody>
-    ${is.documents.map(i=>`<tr><td class="mono">${esc(i.issue_id||'—')}</td><td class="trunc" style="max-width:180px;font-weight:500">${esc(i.title)}</td><td style="font-size:.72rem">${esc(i.category||'—')}</td><td>${badge(i.severity)}</td><td>${badge(i.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No RAID items</td></tr>'}
+    <div class="tw"><table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Severity</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${is.documents.map(i=>`<tr>
+      <td class="mono">${esc(i.issue_id||'—')}</td>
+      <td class="trunc" style="max-width:180px;font-weight:500">${esc(i.title)}</td>
+      <td style="font-size:.72rem">${esc(i.category||'—')}</td>
+      <td>${badge(i.severity)}</td>
+      <td>${badge(i.status)}</td>
+      <td class="iss-actions">
+        ${i.status==='open'||i.status==='in_progress'?`<button class="btn-resolve" onclick="resolveIssue('${i.$id}','${p.$id}')">Resolve</button>`:
+        `<button class="btn-reopen" onclick="quickUpdateIssue('${i.$id}','open','${p.$id}')">Reopen</button>`}
+        <button class="btn btn-ghost btn-sm" onclick="viewIssue('${i.$id}','${p.$id}')">View</button>
+      </td></tr>`).join('')||'<tr><td colspan="6" class="te">No RAID items</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
+
+function openCharterFromInit(pid, jsonStr){
+  let art=null;
+  try{art=jsonStr&&jsonStr!=='null'?JSON.parse(jsonStr):null;}catch{}
+  openCharterModal(pid, art?art.$id:'', art);
+}
+
 
 async function tPlan(p,el){
   const [ar,rk,ms,vn]=await Promise.all([
@@ -897,67 +1357,154 @@ async function tMon(p,el){
     listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')]),
     listDocs('risks',[Query.equal('project_id',p.$id),Query.orderDesc('risk_score')])
   ]);
-  const age=c=>Math.round((Date.now()-new Date(c.$createdAt))/86400000);
   el.innerHTML=`
   <div class="card" style="margin-bottom:11px">
-    <div class="ch"><span class="ct">Change Control Register (CCB Workflow)</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openCRModal('${p.$id}')">+ Raise CR</button>`:''}</div>
-    <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Days Δ</th><th>Age</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    <div class="ch"><span class="ct">Change Control Register</span>
+      ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openCRModal('${p.$id}')">+ Raise CR</button>`:''}
+    </div>
+    <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Days Δ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
     ${cr.documents.map(c=>`<tr>
       <td class="mono" style="color:var(--blue)">${esc(c.cr_number)}</td>
-      <td class="trunc" style="max-width:150px;font-weight:500">${esc(c.title)}</td>
+      <td class="trunc" style="max-width:160px;font-weight:500">${esc(c.title)}</td>
       <td>${badge(c.change_type)}</td>
       <td style="font-size:.72rem;${c.cost_impact>0?'color:var(--red)':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</td>
       <td style="text-align:center;font-size:.72rem;${c.schedule_impact_days>0?'color:var(--amber)':''}">${c.schedule_impact_days||0}d</td>
-      <td class="mono" style="font-size:.68rem;${age(c)>14?'color:var(--red)':''}">${age(c)}d</td>
       <td>${badge(c.status)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="viewCR('${c.$id}')">View</button>
-        ${canDo(['pmo'])&&c.status==='submitted'?`<button class="btn btn-sm btn-primary" style="margin-left:3px" onclick="advCR('${c.$id}','ccb_review')">→ CCB</button>`:''}
-        ${canDo(['pmo'])&&c.status==='ccb_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprCR('${c.$id}')">Approve</button>`:''}
-      </td></tr>`).join('')||'<tr><td colspan="8" class="te">No change requests</td></tr>'}
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm" onclick="viewCR('${c.$id}')">View</button>
+        ${canDo(['pmo'])&&c.status==='submitted'?`<button class="btn btn-sm btn-success" onclick="apprCR('${c.$id}')">Approve</button><button class="btn btn-sm btn-danger" onclick="rejCR('${c.$id}')">Reject</button>`:''}
+        ${c.status==='approved'?`<button class="btn btn-ghost btn-sm" onclick="markCRImplemented('${c.$id}')">Mark Done</button>`:''}
+      </td></tr>`).join('')||'<tr><td colspan="7" class="te">No change requests</td></tr>'}
     </tbody></table></div>
   </div>
   <div class="g2" style="gap:11px">
     <div class="card">
-      <div class="ch"><span class="ct">Issue Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log</button>`:''}</div>
-      <div class="tw"><table><thead><tr><th>ID</th><th>Issue</th><th>Severity</th><th>Status</th></tr></thead><tbody>
-      ${is.documents.map(i=>`<tr><td class="mono">${esc(i.issue_id||'—')}</td><td class="trunc" style="max-width:150px;font-weight:500">${esc(i.title)}</td><td>${badge(i.severity)}</td><td>${badge(i.status)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No issues</td></tr>'}
+      <div class="ch"><span class="ct">Issue Register</span>
+        ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log Issue</button>`:''}
+      </div>
+      <div class="tw"><table><thead><tr><th>ID</th><th>Issue</th><th>Severity</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      ${is.documents.map(i=>`<tr>
+        <td class="mono">${esc(i.issue_id||'—')}</td>
+        <td class="trunc" style="max-width:150px;font-weight:500">${esc(i.title)}</td>
+        <td>${badge(i.severity)}</td>
+        <td>${badge(i.status)}</td>
+        <td class="iss-actions">
+          ${i.status==='open'||i.status==='in_progress'?
+            `<button class="btn-resolve" onclick="resolveIssue('${i.$id}','${p.$id}')">Resolve</button>`:
+            `<button class="btn-reopen" onclick="quickUpdateIssue('${i.$id}','open','${p.$id}')">Reopen</button>`}
+          <button class="btn btn-ghost btn-sm" onclick="viewIssue('${i.$id}','${p.$id}')">View</button>
+        </td></tr>`).join('')||'<tr><td colspan="5" class="te">No issues</td></tr>'}
       </tbody></table></div>
     </div>
     <div class="card">
       <div class="ch"><span class="ct">Active Risks</span></div>
       <div class="tw"><table><thead><tr><th>ID</th><th>Risk</th><th>Score</th><th>Response</th></tr></thead><tbody>
-      ${rk.documents.filter(r=>!['closed','accepted'].includes(r.status)).map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:140px;font-weight:500">${esc(r.title)}</td><td>${rsBadge(r.risk_score)}</td><td style="font-size:.7rem">${esc(r.response_strategy||'—')}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No active risks</td></tr>'}
+      ${rk.documents.filter(r=>!['closed','accepted'].includes(r.status)).map(r=>`<tr>
+        <td class="mono">${esc(r.risk_id||'—')}</td>
+        <td class="trunc" style="max-width:140px;font-weight:500">${esc(r.title)}</td>
+        <td>${rsBadge(r.risk_score)}</td>
+        <td style="font-size:.7rem">${esc(r.response_strategy||'—')}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No active risks</td></tr>'}
       </tbody></table></div>
     </div>
   </div>`;
 }
 
+
 async function tClose(p,el){
   const {documents:ll}=await listDocs('lessons_learned',[Query.equal('project_id',p.$id)]);
-  const items=['All deliverables accepted by client','UAT completed and signed off','All change requests resolved','Risk register reviewed and closed','Issue register cleared','Contract(s) formally closed','Financial reconciliation completed','Lessons learned register completed','Project Closure Report approved','Benefits realisation handover done','PMO final approval received','Sponsor sign-off obtained'];
+  const items=[
+    'SIT (System Integration Testing) completed and signed off',
+    'All deliverables accepted by client',
+    'UAT completed and signed off',
+    'All change requests resolved',
+    'Risk register reviewed and closed',
+    'Issue register cleared',
+    'Contract(s) formally closed',
+    'Financial reconciliation completed',
+    'Lessons learned register completed',
+    'Project Closure Report approved',
+    'Benefits realisation handover done',
+    'PMO final approval received',
+    'Sponsor sign-off obtained'
+  ];
   el.innerHTML=`
+  <!-- SIT SECTION -->
+  <div class="card" style="margin-bottom:11px">
+    <div class="ch">
+      <span class="ct">SIT — System Integration Testing</span>
+      ${badge(p.sit_status||'pending')}
+    </div>
+    <div class="cb">
+      <div class="fgrid">
+        <div class="fg"><label>SIT Completion Date</label>
+          <input id="sit-dt" type="date" value="${p.sit_date||''}" onchange="saveSIT('${p.$id}')"></div>
+        <div class="fg"><label>Sign-off By</label>
+          <input id="sit-sb" value="${esc(p.sit_signoff_by||'')}" placeholder="Name of person signing off" onblur="saveSIT('${p.$id}')"></div>
+        <div class="fg"><label>SIT Status</label>
+          <select id="sit-st" onchange="saveSIT('${p.$id}')">
+            <option value="pending" ${(p.sit_status||'pending')==='pending'?'selected':''}>Pending</option>
+            <option value="in_progress" ${p.sit_status==='in_progress'?'selected':''}>In Progress</option>
+            <option value="completed" ${p.sit_status==='completed'?'selected':''}>Completed</option>
+            <option value="failed" ${p.sit_status==='failed'?'selected':''}>Failed</option>
+          </select>
+        </div>
+        <div class="fg" style="display:flex;align-items:flex-end">
+          <button class="btn btn-success btn-sm" onclick="saveSIT('${p.$id}',true)">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            Save SIT
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="g2" style="gap:11px;margin-bottom:11px">
     <div class="card">
       <div class="ch"><span class="ct">Project Closure Checklist</span></div>
-      <div class="cb">${items.map(i=>`<div class="fchk" style="padding:6px 0;border-bottom:1px solid var(--border)"><input type="checkbox" style="accent-color:var(--green)"><label style="font-size:.78rem">${i}</label></div>`).join('')}
-        ${canDo(['pmo','project_sponsor'])&&p.status!=='closed'?`<div style="margin-top:11px"><button class="btn btn-success btn-sm" onclick="closeProj('${p.$id}')">Mark Project Closed</button></div>`:''}
+      <div class="cb">${items.map(i=>`<div class="fchk" style="padding:6px 0;border-bottom:1px solid var(--border)">
+        <input type="checkbox" style="accent-color:var(--green)" ${i.includes('SIT')&&p.sit_status==='completed'?'checked':''}>
+        <label style="font-size:.78rem">${i}</label></div>`).join('')}
+        ${canDo(['pmo','project_sponsor'])&&p.status!=='closed'?`<div style="margin-top:11px">
+          <button class="btn btn-success btn-sm" onclick="closeProj('${p.$id}')">Mark Project Closed</button></div>`:''}
         ${p.status==='closed'?`<div style="margin-top:11px"><span class="badge bg-green" style="font-size:.76rem;padding:5px 11px">✓ Project Formally Closed</span></div>`:''}
       </div>
     </div>
     <div class="card">
-      <div class="ch"><span class="ct">Closure Artefacts</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','closing')">+ Add</button>`:''}</div>
+      <div class="ch"><span class="ct">Closure Artefacts</span>
+        ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','closing')">+ Add</button>`:''}</div>
       <div class="cb" style="padding:9px"><div class="ag">
-        ${['closure_report','lessons_learned_register'].map(t=>`<div class="acard" onclick="openArtModal('${p.$id}','closing','${t}')"><div class="at">${t.replace(/_/g,' ')}</div><div class="an" style="font-size:.74rem">${t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div><div class="af"><span style="font-size:.68rem;color:var(--text3)">Create</span><span class="badge bg-gray">Pending</span></div></div>`).join('')}
+        ${['closure_report','lessons_learned_register'].map(t=>`<div class="acard" onclick="openArtModal('${p.$id}','closing','${t}')">
+          <div class="at">${t.replace(/_/g,' ')}</div>
+          <div class="an" style="font-size:.74rem">${t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div>
+          <div class="af"><span style="font-size:.68rem;color:var(--text3)">Create</span><span class="badge bg-gray">Pending</span></div>
+        </div>`).join('')}
       </div></div>
     </div>
   </div>
+
   <div class="card">
-    <div class="ch"><span class="ct">Lessons Learned Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openLLModal('${p.$id}')">+ Add Lesson</button>`:''}</div>
+    <div class="ch"><span class="ct">Lessons Learned Register</span>
+      ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openLLModal('${p.$id}')">+ Add Lesson</button>`:''}
+    </div>
     <div class="tw"><table><thead><tr><th>Category</th><th>Phase</th><th>Title</th><th>Impact</th><th>Submitted By</th></tr></thead><tbody>
-    ${ll.map(l=>`<tr><td style="font-size:.72rem">${esc(l.category)}</td><td style="font-size:.7rem">${esc(l.phase||'—')}</td><td class="trunc" style="max-width:200px;font-weight:500">${esc(l.title)}</td><td>${badge(l.impact||'neutral')}</td><td style="font-size:.7rem">${esc(l.submitted_by_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No lessons learned yet</td></tr>'}
+    ${ll.map(l=>`<tr>
+      <td style="font-size:.72rem">${esc(l.category)}</td>
+      <td style="font-size:.7rem">${esc(l.phase||'—')}</td>
+      <td class="trunc" style="max-width:200px;font-weight:500">${esc(l.title)}</td>
+      <td>${badge(l.impact||'neutral')}</td>
+      <td style="font-size:.7rem">${esc(l.submitted_by_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No lessons learned yet</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
+
+async function saveSIT(pid, showToast=false){
+  const status=$('sit-st')?.value||'pending';
+  const date=$('sit-dt')?.value||'';
+  const signoff=$('sit-sb')?.value?.trim()||'';
+  await updateDoc('projects',pid,{sit_status:status,sit_date:date,sit_signoff_by:signoff});
+  if(showToast){toast('SIT details saved!','success');if(S.proj)S.proj.sit_status=status;}
+}
+
 
 // ─── GLOBAL VIEWS ─────────────────────────────────────────────────────────
 async function risks(){
@@ -1202,6 +1749,10 @@ async function submitArt(pid){
 }
 async function viewArt(id){
   const a=await getDoc('artefacts',id);
+  // If this is a project charter or structured plan, open rich form instead
+  if(a.artefact_type==='project_charter'){
+    openCharterModal(a.project_id, a.$id, a); return;
+  }
   const canAppr=canDo(['pmo','project_sponsor'])&&a.status==='in_review';
   const canSub=canDo(['pmo','project_manager'])&&a.status==='draft';
   om(a.title,`
@@ -1266,48 +1817,119 @@ function openIssModal(pid){
     <div class="fg"><label>Severity</label><select id="is-s"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select></div>
     <div class="fg s2"><label>Target Resolution Date</label><input id="is-dt" type="date"></div>
   </div>`,
-  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitIss('${pid}')">Log Issue</button>`);
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-primary" onclick="submitIss('${pid}')">Log Issue</button>`);
 }
+
 async function submitIss(pid){
   const v=id=>$(id)?.value?.trim();
   if(!v('is-t')||!v('is-d')){toast('Title and description required','error');return;}
   try{
-    await createDoc('issues',{project_id:pid,issue_id:genId('ISS'),title:v('is-t'),description:v('is-d'),category:v('is-c'),severity:v('is-s'),target_resolution_date:v('is-dt')||'',status:'open',raised_by:S.profile.$id});
+    await createDoc('issues',{
+      project_id:pid, issue_id:genId('ISS'), title:v('is-t'), description:v('is-d'),
+      category:v('is-c'), severity:v('is-s'), target_resolution_date:v('is-dt')||'',
+      status:'open', raised_by:S.profile.$id
+    });
     toast('Issue logged!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
   }catch(e){toast('Error: '+e.message,'error');}
 }
 
+function resolveIssue(id, pid){
+  om('Resolve Issue',`
+  <p style="font-size:.8rem;color:var(--text2);margin-bottom:12px">Provide resolution notes and mark this issue as resolved.</p>
+  <div class="fg"><label>Resolution Notes <span class="req">*</span></label><textarea id="ires-n" rows="4" required placeholder="Describe how this issue was resolved…"></textarea></div>
+  <div class="fg"><label>Actual Resolution Date</label><input id="ires-dt" type="date" value="${new Date().toISOString().split('T')[0]}"></div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-success" onclick="submitResolve('${id}','${pid}')">Mark Resolved</button>`);
+}
+
+async function submitResolve(id, pid){
+  const notes=$('ires-n')?.value?.trim();
+  if(!notes){toast('Resolution notes required','error');return;}
+  try{
+    await updateDoc('issues',id,{
+      status:'resolved', resolution_notes:notes,
+      actual_resolution_date:$('ires-dt')?.value||new Date().toISOString().split('T')[0]
+    });
+    await auditLog('ISSUE_RESOLVED','issue',id,'Issue marked as resolved');
+    toast('Issue resolved!','success');cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function quickUpdateIssue(id, status, pid){
+  await updateDoc('issues',id,{status});
+  toast(`Issue ${status==='open'?'reopened':'updated'}`,'info');
+  if(S.proj)renderTab(S.ptab,S.proj);
+}
+
+async function viewIssue(id, pid){
+  const i=await getDoc('issues',id);
+  const canEdit=canDo(['pmo','project_manager']);
+  om(`Issue: ${i.issue_id||'—'}`,`
+  <div class="dsec">
+    <div class="dr"><span class="dl">Title</span><span class="dv" style="font-weight:600">${esc(i.title)}</span></div>
+    <div class="dr"><span class="dl">Status</span><span class="dv">${badge(i.status)}</span></div>
+    <div class="dr"><span class="dl">Severity</span><span class="dv">${badge(i.severity)}</span></div>
+    <div class="dr"><span class="dl">Category</span><span class="dv">${esc(i.category||'—')}</span></div>
+    <div class="dr"><span class="dl">Logged</span><span class="dv">${fmtD(i.$createdAt)}</span></div>
+    <div class="dr"><span class="dl">Target Date</span><span class="dv">${fmtD(i.target_resolution_date)}</span></div>
+    ${i.actual_resolution_date?`<div class="dr"><span class="dl">Resolved On</span><span class="dv">${fmtD(i.actual_resolution_date)}</span></div>`:''}
+  </div>
+  <div class="fsec"><h4>Description</h4><p style="font-size:.78rem;line-height:1.6">${esc(i.description)}</p></div>
+  ${i.resolution_notes?`<div class="fsec"><h4>Resolution Notes</h4><p style="font-size:.78rem;line-height:1.6;color:var(--green)">${esc(i.resolution_notes)}</p></div>`:''}
+  ${canEdit&&(i.status==='open'||i.status==='in_progress')?`
+  <div class="fsec"><h4>Update Status</h4>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn-resolve" onclick="quickUpdateIssue('${id}','in_progress','${pid}');cm()">Mark In Progress</button>
+      <button class="btn-resolve" onclick="cm();resolveIssue('${id}','${pid}')">Resolve</button>
+    </div>
+  </div>`:''}`,
+  `<button class="btn btn-secondary" onclick="cm()">Close</button>`,
+  {sub:`${i.severity} · ${i.status}`});
+}
+
+
 function openCRModal(pid){
   om('Raise Change Request',`
-  <div style="background:var(--amber-bg);border-left:3px solid var(--amber);padding:8px 11px;border-radius:4px;font-size:.74rem;color:#92400E;margin-bottom:12px">All changes require formal CCB review. Approved changes update the project baseline.</div>
+  <div style="background:var(--amber-bg);border-left:3px solid var(--amber);padding:8px 11px;border-radius:4px;font-size:.74rem;color:#92400E;margin-bottom:12px">
+    All changes require formal approval. Raised CRs are pending until PMO approves or rejects.
+  </div>
   <div class="fgrid">
     <div class="fg s2"><label>CR Title <span class="req">*</span></label><input id="cr-t" required></div>
     <div class="fg s2"><label>Description <span class="req">*</span></label><textarea id="cr-d" rows="3" required></textarea></div>
     <div class="fg s2"><label>Justification <span class="req">*</span></label><textarea id="cr-j" rows="2" required></textarea></div>
     <div class="fg"><label>Change Type</label><select id="cr-tp"><option value="scope">Scope</option><option value="schedule">Schedule</option><option value="cost">Cost</option><option value="quality">Quality</option><option value="resource">Resource</option><option value="other">Other</option></select></div>
     <div class="fg"><label>Priority</label><select id="cr-pr"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
-    <div class="fg"><label>Schedule Impact (days, + = delay)</label><input id="cr-sd" type="number" value="0"></div>
-    <div class="fg"><label>Cost Impact (S$, + = increase)</label><input id="cr-ci" type="number" value="0"></div>
+    <div class="fg"><label>Schedule Impact (days)</label><input id="cr-sd" type="number" value="0"></div>
+    <div class="fg"><label>Cost Impact (S$)</label><input id="cr-ci" type="number" value="0"></div>
     <div class="fg s2"><label>Scope Impact</label><textarea id="cr-si" rows="2"></textarea></div>
     <div class="fg s2"><label>Risk Impact</label><textarea id="cr-ri" rows="2"></textarea></div>
   </div>`,
-  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="submitCR('${pid}')">Submit CR</button>`,
-  {lg:true,sub:'Formal Change Control Board (CCB) Process'});
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-primary" onclick="submitCR('${pid}')">Submit CR</button>`,
+  {lg:true,sub:'Change Request — Created → Approved / Rejected'});
 }
+
 async function submitCR(pid){
   const v=id=>$(id)?.value?.trim();
   if(!v('cr-t')||!v('cr-d')||!v('cr-j')){toast('Fill mandatory fields','error');return;}
   try{
-    await createDoc('change_requests',{project_id:pid,cr_number:genId('CR'),title:v('cr-t'),description:v('cr-d'),justification:v('cr-j'),change_type:v('cr-tp'),priority:v('cr-pr'),schedule_impact_days:parseInt(v('cr-sd'))||0,cost_impact:parseFloat(v('cr-ci'))||0,scope_impact:v('cr-si'),risk_impact:v('cr-ri'),status:'submitted',requestor_id:S.profile.$id,requestor_name:S.profile.full_name});
+    await createDoc('change_requests',{
+      project_id:pid, cr_number:genId('CR'), title:v('cr-t'), description:v('cr-d'),
+      justification:v('cr-j'), change_type:v('cr-tp'), priority:v('cr-pr'),
+      schedule_impact_days:parseInt(v('cr-sd'))||0, cost_impact:parseFloat(v('cr-ci'))||0,
+      scope_impact:v('cr-si'), risk_impact:v('cr-ri'),
+      status:'submitted', requestor_id:S.profile.$id, requestor_name:S.profile.full_name
+    });
     await auditLog('CR_SUBMITTED','change_request',null,`CR raised: ${v('cr-t')}`,pid);
-    toast('CR submitted for CCB!','success');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+    toast('CR submitted!','success');cm();updateBadges();
+    if(S.proj)renderTab(S.ptab,S.proj);else await changes();
   }catch(e){toast('Error: '+e.message,'error');}
 }
+
 async function viewCR(id){
   const c=await getDoc('change_requests',id);
-  const canAdv=canDo(['pmo'])&&c.status==='submitted';
-  const canAppr=canDo(['pmo'])&&c.status==='ccb_review';
-  const canRej=canDo(['pmo'])&&['submitted','ccb_review'].includes(c.status);
+  const canAppr=canDo(['pmo'])&&c.status==='submitted';
   om(`CR: ${c.cr_number}`,`
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
     <div>
@@ -1320,37 +1942,47 @@ async function viewCR(id){
         <div class="dr"><span class="dl">Schedule Δ</span><span class="dv" style="${c.schedule_impact_days>0?'color:var(--amber);font-weight:600':''}">${c.schedule_impact_days>0?'+':''}${c.schedule_impact_days||0} days</span></div>
         <div class="dr"><span class="dl">Cost Δ</span><span class="dv" style="${c.cost_impact>0?'color:var(--red);font-weight:600':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</span></div>
       </div>
-      ${c.ccb_notes?`<div class="dsec"><h4>CCB Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(c.ccb_notes)}</p></div>`:''}
+      ${c.approved_at?`<div class="dsec"><h4>Decision</h4>
+        <div class="dr"><span class="dl">Decision</span><span class="dv">${badge(c.status)}</span></div>
+        <div class="dr"><span class="dl">Date</span><span class="dv">${fmtD(c.approved_at)}</span></div>
+      </div>`:''}
     </div>
     <div>
       <div class="dsec"><h4>Description</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.description)}</p></div>
       <div class="dsec"><h4>Justification</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.justification)}</p></div>
       ${c.scope_impact?`<div class="dsec"><h4>Scope Impact</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.scope_impact)}</p></div>`:''}
-      ${c.risk_impact?`<div class="dsec"><h4>Risk Impact</h4><p style="font-size:.77rem;line-height:1.6">${esc(c.risk_impact)}</p></div>`:''}
     </div>
   </div>
-  ${(canAppr||canRej)?`<div class="fsec"><h4>CCB Decision</h4><div class="fgrid"><div class="fg"><label>CCB Meeting Date</label><input id="ccbd" type="date" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label>CCB Notes / Rationale</label><textarea id="ccbn" rows="2"></textarea></div></div></div>`:''}`,
+  ${canAppr?`<div class="fsec"><h4>PMO Decision Notes</h4>
+    <div class="fg"><textarea id="cr-dec-notes" rows="2" placeholder="Optional decision rationale…"></textarea></div>
+  </div>`:''}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
-   ${canRej?`<button class="btn btn-danger" onclick="rejCR('${c.$id}')">Reject</button>`:''}
-   ${canAdv?`<button class="btn btn-warning" onclick="advCR('${c.$id}','ccb_review')">→ Send to CCB</button>`:''}
-   ${canAppr?`<button class="btn btn-success" onclick="apprCR('${c.$id}')">CCB Approve</button>`:''}`,
+   ${canAppr?`<button class="btn btn-danger" onclick="rejCR('${c.$id}')">Reject</button>
+   <button class="btn btn-success" onclick="apprCR('${c.$id}')">Approve</button>`:''}`,
   {lg:true,sub:c.title});
 }
-async function advCR(id,status){
-  await updateDoc('change_requests',id,{status});toast(`CR moved to ${status.replace(/_/g,' ')}`,'info');
-  cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
-}
+
 async function apprCR(id){
-  const dt=$('ccbd')?.value||'';
-  await updateDoc('change_requests',id,{status:'approved',ccb_meeting_date:dt,approved_by:S.profile.$id,approved_at:new Date().toISOString()});
-  await auditLog('CR_APPROVED','change_request',id,'Approved by CCB');
-  toast('CR approved by CCB!','success');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+  const dt=new Date().toISOString();
+  await updateDoc('change_requests',id,{status:'approved',approved_by:S.profile.$id,approved_at:dt});
+  await auditLog('CR_APPROVED','change_request',id,'CR approved by PMO');
+  toast('CR approved!','success');cm();updateBadges();
+  if(S.proj)renderTab(S.ptab,S.proj);else await changes();
 }
+
 async function rejCR(id){
-  const n=$('ccbn')?.value||'';if(!n){toast('Provide rejection reason in CCB notes','error');return;}
   await updateDoc('change_requests',id,{status:'rejected',approved_by:S.profile.$id,approved_at:new Date().toISOString()});
-  toast('CR rejected','info');cm();updateBadges();if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+  await auditLog('CR_REJECTED','change_request',id,'CR rejected by PMO');
+  toast('CR rejected','info');cm();updateBadges();
+  if(S.proj)renderTab(S.ptab,S.proj);else await changes();
 }
+
+async function markCRImplemented(id){
+  await updateDoc('change_requests',id,{status:'implemented'});
+  toast('CR marked as implemented','success');
+  if(S.proj)renderTab(S.ptab,S.proj);else await changes();
+}
+
 
 function openMsModal(pid){
   om('Add Milestone / Stage Gate',`
@@ -1474,6 +2106,21 @@ async function submitLL(pid){
   }catch(e){toast('Error: '+e.message,'error');}
 }
 
+async function deleteProject(id, name){
+  if(S.profile?.role!=='system_admin'){toast('System Admin only','error');return;}
+  if(!confirm(`DELETE PROJECT: "${name}"\n\nThis will permanently delete the project record.\nRelated data (artefacts, risks, etc.) will remain in the database but be unlinked.\n\nType DELETE to confirm.`)){return;}
+  const confirm2=window.prompt('Type DELETE to confirm permanent deletion:');
+  if(confirm2!=='DELETE'){toast('Deletion cancelled','info');return;}
+  try{
+    await db.deleteDocument(DB_ID,'projects',id);
+    await auditLog('PROJECT_DELETED','project',id,`Project deleted by ${S.profile.full_name}: ${name}`);
+    toast('Project deleted permanently','info');
+    if(S.view==='projDetail') await nav('projects');
+    else await projects();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+
 async function closeProj(id){
   if(!canDo(['pmo','project_sponsor'])){toast('Insufficient permission','error');return;}
   if(!confirm('Formally close this project? This creates an immutable closure record.'))return;
@@ -1503,7 +2150,7 @@ async function editProjModal(id){
     <div class="fg"><label>Actual Cost (S$)</label><input id="ep-ac" type="number" value="${p.actual_cost||0}"></div>
     <div class="fg s2"><label>Scope Summary</label><textarea id="ep-sc" rows="2">${esc(p.scope_summary||'')}</textarea></div>
   </div>`,
-  `<button class="btn btn-secondary" onclick="cm()">Cancel</button><button class="btn btn-primary" onclick="saveProj('${id}')">Save Changes</button>`);
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>${S.profile?.role==='system_admin'?`<button class="btn btn-danger" onclick="cm();deleteProject('${id}','${v('ep-n')||p.name}')">Delete Project</button>`:''}<button class="btn btn-primary" onclick="saveProj('${id}')">Save Changes</button>`);
 }
 async function saveProj(id){
   const v=id=>$(id)?.value?.trim();
@@ -1542,6 +2189,190 @@ function ft(val,tbodyId){
   const t=val.toLowerCase();
   document.querySelectorAll(`#${tbodyId} tr`).forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(t)?'':'none';});
 }
+
+// ─── PROJECT CHARTER FORM ─────────────────────────────────────────────────
+function openCharterModal(pid, artId, art){
+  const safeParse=(s,d)=>{try{return JSON.parse(s||'{}');}catch{return d;}};
+  const data = art?.description ? safeParse(art.description, {}) : {};
+
+  const scope       = data.scope       || [];
+  const equipment   = data.equipment   || [];
+  const deliverables= data.deliverables|| [];
+  const assumptions = data.assumptions || [];
+  const constraints = data.constraints || [
+    {type:'Budget',description:'',impact:''},
+    {type:'Schedule',description:'',impact:''},
+    {type:'Resources',description:'',impact:''},
+    {type:'Technology',description:'',impact:''},
+    {type:'Regulatory',description:'',impact:''}
+  ];
+  const risks = data.risks || [];
+  const team  = data.team  || [
+    {position:'Project Manager',name:'',remarks:''},
+    {position:'Project Lead',   name:'',remarks:''},
+    {position:'IT Engineer',    name:'',remarks:''},
+    {position:'Engineer 1',     name:'',remarks:''},
+    {position:'Engineer 2',     name:'',remarks:''}
+  ];
+
+  const scRow = (r=[])  => `<div class="dyn-row"><select class="w80"><option ${r[0]==='In'?'selected':''}>In</option><option ${r[0]==='Out'?'selected':''}>Out</option></select><input value="${esc(r[1]||'')}" placeholder="Description" style="flex:2"><input value="${esc(r[2]||'')}" placeholder="Remarks" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;
+  const delRow= (r=[])  => `<div class="dyn-row"><input value="${esc(r[0]||'')}" placeholder="Deliverable description" style="flex:2"><input value="${esc(r[1]||'')}" type="date" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;
+  const assRow= (r=[])  => `<div class="dyn-row"><input value="${esc(r[0]||'')}" placeholder="Assumption" style="flex:2"><input value="${esc(r[1]||'')}" placeholder="Dependency" class="w160"><input value="${esc(r[2]||'')}" placeholder="Validation Method" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;
+  const rskRow= (r=[])  => `<div class="dyn-row"><input value="${esc(r[0]||'')}" placeholder="Risk description" style="flex:2"><select class="w120"><option ${r[1]==='Technical Risk'?'selected':''}>Technical Risk</option><option ${r[1]==='Schedule Risk'?'selected':''}>Schedule Risk</option><option ${r[1]==='User Adoption Risk'?'selected':''}>User Adoption Risk</option><option ${r[1]==='Resource Risk'?'selected':''}>Resource Risk</option><option ${r[1]==='Regulatory Risk'?'selected':''}>Regulatory Risk</option></select><select class="w80"><option ${r[2]==='low'?'selected':''}value="low">Low</option><option ${r[2]==='medium'||!r[2]?'selected':''}value="medium">Medium</option><option ${r[2]==='high'?'selected':''}value="high">High</option><option ${r[2]==='critical'?'selected':''}value="critical">Critical</option></select><input value="${esc(r[3]||'')}" placeholder="Mitigation plan" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;
+
+  om('Project Charter — Project Description',`
+  <div class="ctabs">
+    <div class="ctab active" onclick="swCTab(this,'ch1')">Scope</div>
+    <div class="ctab" onclick="swCTab(this,'ch2')">Equipment</div>
+    <div class="ctab" onclick="swCTab(this,'ch3')">Deliverables</div>
+    <div class="ctab" onclick="swCTab(this,'ch4')">Assumptions</div>
+    <div class="ctab" onclick="swCTab(this,'ch5')">Constraints</div>
+    <div class="ctab" onclick="swCTab(this,'ch6')">Risks</div>
+    <div class="ctab" onclick="swCTab(this,'ch7')">Project Team</div>
+  </div>
+
+  <!-- SCOPE -->
+  <div class="cpane active" id="ch1">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">Define what is In and Out of scope for this project.</p>
+    ${dynHdr(['In/Out','Description','Remarks',''],['w80','','w160','w32'])}
+    <div id="ch-scope">${scope.map(r=>scRow([r.inout,r.description,r.remarks])).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-scope');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<select class=\\'w80\\'><option>In</option><option>Out</option></select><input placeholder=\\'Description\\' style=\\'flex:2\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Row</button>
+  </div>
+
+  <!-- EQUIPMENT -->
+  <div class="cpane" id="ch2">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">List equipment included or excluded from this project.</p>
+    ${dynHdr(['In/Out','Description','Remarks',''],['w80','','w160','w32'])}
+    <div id="ch-equip">${equipment.map(r=>scRow([r.inout,r.description,r.remarks])).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-equip');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<select class=\\'w80\\'><option>In</option><option>Out</option></select><input placeholder=\\'Description\\' style=\\'flex:2\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Row</button>
+  </div>
+
+  <!-- DELIVERABLES -->
+  <div class="cpane" id="ch3">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">List all deliverables with planned completion dates. These will be auto-added as project milestones.</p>
+    ${dynHdr(['Description','Planned Date',''],['','w160','w32'])}
+    <div id="ch-del">${deliverables.map(r=>delRow([r.description,r.planned_date])).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-del');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Deliverable description\\' style=\\'flex:2\\'><input type=\\'date\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Deliverable</button>
+  </div>
+
+  <!-- ASSUMPTIONS -->
+  <div class="cpane" id="ch4">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">List project assumptions, their dependencies, and how they will be validated.</p>
+    ${dynHdr(['Description','Dependency','Validation Method',''],['','w160','w160','w32'])}
+    <div id="ch-ass">${assumptions.map(r=>assRow([r.description,r.dependency,r.validation])).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-ass');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Assumption\\' style=\\'flex:2\\'><input placeholder=\\'Dependency\\' class=\\'w160\\'><input placeholder=\\'Validation Method\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Assumption</button>
+  </div>
+
+  <!-- CONSTRAINTS -->
+  <div class="cpane" id="ch5">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">Pre-filled with standard constraint types. Describe each applicable constraint.</p>
+    <div id="ch-con">${constraints.map((c,i)=>`<div class="dyn-row" id="con-${i}">
+      <input value="${esc(c.type)}" class="w120" placeholder="Type" style="font-weight:600;background:#f5f7fa">
+      <input value="${esc(c.description)}" placeholder="Description" style="flex:2">
+      <input value="${esc(c.impact)}" placeholder="Impact" class="w160">
+    </div>`).join('')}</div>
+  </div>
+
+  <!-- RISKS -->
+  <div class="cpane" id="ch6">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">These risks will be added to the Risk Register automatically on save.</p>
+    ${dynHdr(['Risk Description','Type','Level','Mitigation Plan',''],['','w120','w80','w160','w32'])}
+    <div id="ch-risk">${risks.map(r=>rskRow([r.risk,r.type,r.level,r.mitigation])).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-risk');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Risk description\\' style=\\'flex:2\\'><select class=\\'w120\\'><option>Technical Risk</option><option>Schedule Risk</option><option>User Adoption Risk</option><option>Resource Risk</option><option>Regulatory Risk</option></select><select class=\\'w80\\'><option value=\\'low\\'>Low</option><option value=\\'medium\\' selected>Medium</option><option value=\\'high\\'>High</option><option value=\\'critical\\'>Critical</option></select><input placeholder=\\'Mitigation plan\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Risk</button>
+  </div>
+
+  <!-- PROJECT TEAM -->
+  <div class="cpane" id="ch7">
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">Assign team members. Project Manager name will update the project record.</p>
+    <div id="ch-team">${team.map((t,i)=>`<div class="dyn-row" id="tm-${i}">
+      <input value="${esc(t.position)}" class="w160" placeholder="Position" style="font-weight:600;background:#f5f7fa">
+      <input value="${esc(t.name)}" placeholder="Full Name" style="flex:2">
+      <input value="${esc(t.remarks||'')}" placeholder="Remarks" class="w160">
+    </div>`).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-team');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Position\\' class=\\'w160\\'><input placeholder=\\'Full Name\\' style=\\'flex:2\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'>';d.appendChild(div)">+ Add Member</button>
+  </div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-primary" onclick="saveCharter('${pid}','${artId||''}')">Save Charter</button>
+   ${art?.status==='draft'?`<button class="btn btn-warning" onclick="saveCharter('${pid}','${artId||''}',true)">Save &amp; Submit for Approval</button>`:''}`,
+  {lg:true, sub:'Project Description — fills planning artefacts automatically'});
+}
+
+async function saveCharter(pid, artId, submit=false){
+  // Collect all tables
+  const getTableRows=(id, fields)=>{
+    const rows=[];
+    document.querySelectorAll(`#${id} .dyn-row`).forEach(row=>{
+      const inp=row.querySelectorAll('input,select');
+      const obj={};fields.forEach((f,j)=>{obj[f]=inp[j]?.value?.trim()||'';});
+      if(Object.values(obj).some(v=>v)) rows.push(obj);
+    });
+    return rows;
+  };
+
+  const scope        = getTableRows('ch-scope',['inout','description','remarks']);
+  const equipment    = getTableRows('ch-equip',['inout','description','remarks']);
+  const deliverables = getTableRows('ch-del',  ['description','planned_date']);
+  const assumptions  = getTableRows('ch-ass',  ['description','dependency','validation']);
+  const constraints  = getTableRows('ch-con',  ['type','description','impact']);
+  const risks        = getTableRows('ch-risk', ['risk','type','level','mitigation']);
+  const team         = getTableRows('ch-team', ['position','name','remarks']);
+
+  const charterData = JSON.stringify({scope,equipment,deliverables,assumptions,constraints,risks,team});
+
+  try{
+    // 1. Save charter artefact
+    if(artId){
+      await updateDoc('artefacts',artId,{
+        description: charterData,
+        status: submit?'in_review':'draft'
+      });
+    } else {
+      const newArt=await createDoc('artefacts',{
+        project_id:pid, artefact_type:'project_charter', title:'Project Charter',
+        description:charterData, version:'1.0',
+        status:submit?'in_review':'draft', process_group:'initiation',
+        owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+      });
+      artId=newArt.$id;
+    }
+
+    // 2. Auto-populate deliverables → milestones
+    for(const d of deliverables){
+      if(!d.description) continue;
+      await createDoc('milestones',{
+        project_id:pid, name:d.description, phase:'',
+        planned_date:d.planned_date||'', status:'upcoming', is_stage_gate:false
+      });
+    }
+
+    // 3. Auto-populate risks → risk register
+    for(const r of risks){
+      if(!r.risk) continue;
+      const riskId=genId('RSK');
+      await createDoc('risks',{
+        project_id:pid, risk_id:riskId, title:r.risk,
+        description:r.risk, category:r.type||'Technical',
+        probability:'medium', impact:r.level||'medium',
+        risk_score:9, risk_rating:'Medium',
+        status:'identified', response_strategy:'mitigate',
+        mitigation_strategy:r.mitigation||'',
+        raised_by:S.profile.$id, owner_id:S.profile.$id, owner_name:S.profile.full_name,
+        is_healthcare_regulatory:false
+      });
+    }
+
+    // 4. Update project manager name if set in team
+    const pm=team.find(t=>t.position?.toLowerCase().includes('project manager'));
+    if(pm?.name){
+      await updateDoc('projects',pid,{project_manager_name:pm.name});
+    }
+
+    await auditLog('CHARTER_SAVED','artefact',artId,'Project Charter saved',pid);
+    toast(submit?'Charter saved and submitted for approval!':'Charter saved!','success');
+    cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
 
 // BOOT
 (async()=>{
