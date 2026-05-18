@@ -182,6 +182,21 @@ tr:hover td{background:#FAFBFD}
 .acard .at{font-size:.6rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .acard .an{font-size:.77rem;font-weight:600;color:var(--text);margin-bottom:6px}
 .acard .af{display:flex;align-items:center;justify-content:space-between}
+
+/* inline edit fields */
+.ie-wrap{position:relative}
+.ie-wrap:hover .ie-hint{opacity:1}
+.ie-hint{position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:.58rem;color:var(--text3);opacity:0;transition:opacity .15s;pointer-events:none}
+.ie-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #F0F2F5}
+.ie-row:last-child{border-bottom:none}
+.ie-lbl{font-size:.7rem;font-weight:600;color:var(--text2);width:140px;flex-shrink:0}
+.ie-val input,.ie-val select{border:none;background:transparent;font-size:.76rem;color:var(--text);padding:0;width:100%;cursor:pointer;border-bottom:1.5px solid transparent;transition:border .15s;font-family:inherit}
+.ie-val input:focus,.ie-val select:focus{outline:none;border-bottom-color:var(--blue);background:#f7f9ff;border-radius:3px;padding:2px 4px}
+.ie-val input[type=date]{font-size:.73rem}
+.ie-val input[type=number]{width:120px}
+.ie-save{display:none;background:var(--blue);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:.68rem;font-weight:600;cursor:pointer;margin-left:4px}
+.ie-wrap:focus-within .ie-save{display:inline-block}
+
 .acard .av{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--text3)}
 .pc{background:var(--card);border-radius:var(--rl);border:1px solid var(--border);padding:14px;box-shadow:var(--sh);cursor:pointer;transition:all .15s;position:relative}
 .pc:hover{border-color:var(--blue);box-shadow:var(--shm);transform:translateY(-1px)}
@@ -1015,6 +1030,7 @@ async function viewReq(id){
     <div class="fg"><label>PMO Review Notes</label><textarea id="pmn" rows="3" placeholder="Optional notes. If rejecting, provide the reason here."></textarea></div>
   </div>`:''}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
+   ${r.status==='approved'?`<button class="btn btn-ghost btn-sm" style="color:var(--purple)" onclick="downloadRequestPDF('${r.$id}')">⬇ Download PDF</button>`:''}
    ${canEdit&&r.status!=='approved'?`<button class="btn btn-primary" onclick="cm();editReqModal('${r.$id}')">✏ Edit Request</button>`:''}
    ${canA?`<button class="btn btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>
    <button class="btn btn-success" onclick="apprReq('${r.$id}')">Approve & Create Project</button>`:''}`,
@@ -1463,7 +1479,7 @@ async function projDetail({id}){
   S.proj=p;
   $('tt').textContent=p.name;$('ts').textContent=`${p.project_code} — ${p.client_organisation}`;
   $('ta').innerHTML=`<span>${ragBadge(p.health_status)}</span>
-    ${canDo(['pmo','project_manager'])?`<button class="btn btn-ghost btn-sm" onclick="editProjModal('${p.$id}')">Edit</button>`:''}
+    ${S.profile?.role==='system_admin'?`<button class="btn btn-danger btn-sm" onclick="deleteProject('${p.$id}','${p.name.replace(/'/g,"\\'")}')">Delete</button>`:''}
     <button class="btn btn-secondary btn-sm" onclick="nav('projects')">← Portfolio</button>`;
   const tabs=['overview','initiation','planning','executing','monitoring','closing'];
   const tl={overview:'Overview',initiation:'1. Initiating',planning:'2. Planning',executing:'3. Executing',monitoring:'4. Mon. & Control',closing:'5. Closing'};
@@ -1499,32 +1515,66 @@ async function tOverview(p,el){
   const arts=ar.documents,tasks=tk.documents;
   const done=tasks.filter(t=>t.status==='completed').length;
   const pct=tasks.length?Math.round(done/tasks.length*100):0;
+  const canE=canDo(['pmo','project_manager','system_admin']);
+  // Helper to render an inline-editable row
+  const ieRow=(lbl,field,val,type='text',opts=null)=>{
+    if(!canE) return `<div class="ie-row"><span class="ie-lbl">${lbl}</span><span class="ie-val" style="flex:1;font-size:.76rem">${val||'—'}</span></div>`;
+    const id=`ie-${p.$id}-${field}`;
+    if(opts){
+      // select
+      const selOpts=opts.map(o=>`<option value="${o.v}" ${p[field]===o.v?'selected':''}>${o.l}</option>`).join('');
+      return `<div class="ie-row ie-wrap"><span class="ie-lbl">${lbl}</span><span class="ie-val" style="flex:1"><select id="${id}" onchange="saveIE('${p.$id}','${field}',this.value,'${type}')">${selOpts}</select></span></div>`;
+    }
+    const itype=type==='date'?'date':type==='number'?'number':'text';
+    const dval=type==='date'?(p[field]||''):type==='number'?(p[field]||''):(p[field]||'');
+    return `<div class="ie-row ie-wrap"><span class="ie-lbl">${lbl}</span><span class="ie-val" style="flex:1"><input id="${id}" type="${itype}" value="${esc(String(dval))}" placeholder="Click to edit" onchange="saveIE('${p.$id}','${field}',this.value,'${type}')"></span><span class="ie-hint">click to edit</span></div>`;
+  };
+  const statusOpts=[
+    {v:'initiation',l:'Initiation'},{v:'planning',l:'Planning'},{v:'executing',l:'Executing'},
+    {v:'monitoring_controlling',l:'Monitoring & Controlling'},{v:'closing',l:'Closing'},
+    {v:'closed',l:'Closed'},{v:'on_hold',l:'On Hold'}
+  ];
+  const healthOpts=[{v:'green',l:'🟢 Green'},{v:'amber',l:'🟡 Amber'},{v:'red',l:'🔴 Red'}];
+  const classOpts=[{v:'internal',l:'Internal'},{v:'confidential',l:'Confidential'},{v:'restricted',l:'Restricted'},{v:'public',l:'Public'}];
+
   el.innerHTML=`
+  ${canE?`<div style="background:var(--blue-light);border-left:3px solid var(--blue);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:.74rem;color:var(--blue-h)">
+    ✏ <strong>Inline editing enabled</strong> — click any field below to edit it. Changes save automatically.
+  </div>`:''}
   <div class="g2" style="gap:11px;margin-bottom:11px">
     <div class="card"><div class="ch"><span class="ct">Project Details</span></div><div class="cb">
-      <div class="dsec">
-        <div class="dr"><span class="dl">Code</span><span class="dv mono">${esc(p.project_code)}</span></div>
-        <div class="dr"><span class="dl">Status</span><span class="dv">${badge(p.status)}</span></div>
-        <div class="dr"><span class="dl">Health</span><span class="dv">${ragBadge(p.health_status)}</span></div>
-        <div class="dr"><span class="dl">Project Manager</span><span class="dv">${esc(p.project_manager_name||'—')}</span></div>
-        <div class="dr"><span class="dl">Sponsor</span><span class="dv">${esc(p.sponsor_name||'—')}</span></div>
-        <div class="dr"><span class="dl">Client</span><span class="dv">${esc(p.client_organisation)}</span></div>
-        <div class="dr"><span class="dl">Contract Ref</span><span class="dv mono">${esc(p.contract_reference||'—')}</span></div>
-        <div class="dr"><span class="dl">Classification</span><span class="dv">${badge(p.sensitivity_class)}</span></div>
-        <div class="dr"><span class="dl">PHI</span><span class="dv">${p.healthcare_sensitivity?'<span class="badge bg-red">Yes — PHI</span>':'No'}</span></div>
-        <div class="dr"><span class="dl">Baseline</span><span class="dv">${p.baseline_locked?'<span class="badge bg-green">Locked</span>':'<span class="badge bg-gray">Not Locked</span>'}</span></div>
-      </div>
+      ${ieRow('Code',        'project_code',        p.project_code)}
+      ${ieRow('Status',      'status',              p.status,      'select',statusOpts)}
+      ${ieRow('Health',      'health_status',       p.health_status,'select',healthOpts)}
+      ${ieRow('Project Manager','project_manager_name',p.project_manager_name)}
+      ${ieRow('Sponsor',     'sponsor_name',        p.sponsor_name)}
+      ${ieRow('Client',      'client_organisation', p.client_organisation)}
+      ${ieRow('Contract Ref','contract_reference',  p.contract_reference)}
+      ${ieRow('Classification','sensitivity_class', p.sensitivity_class,'select',classOpts)}
+      <div class="ie-row"><span class="ie-lbl">PHI</span><span class="ie-val" style="flex:1">
+        ${canE?`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.76rem">
+          <input type="checkbox" ${p.healthcare_sensitivity?'checked':''} style="accent-color:var(--blue)" onchange="saveIE('${p.$id}','healthcare_sensitivity',this.checked,'bool')">
+          PHI / Healthcare data involved</label>`:
+          (p.healthcare_sensitivity?'<span class="badge bg-red">Yes — PHI</span>':'No')}
+      </span></div>
+      <div class="ie-row"><span class="ie-lbl">Baseline</span><span class="ie-val" style="flex:1">${p.baseline_locked?'<span class="badge bg-green">Locked</span>':'<span class="badge bg-gray">Not Locked</span>'}</span></div>
     </div></div>
+
     <div class="card"><div class="ch"><span class="ct">Schedule &amp; Budget</span></div><div class="cb">
       <div class="dsec"><h4>Timeline</h4>
-        <div class="dr"><span class="dl">Planned Start</span><span class="dv">${fmtD(p.planned_start_date)}</span></div>
-        <div class="dr"><span class="dl">Planned End</span><span class="dv">${fmtD(p.planned_end_date)}</span></div>
-        <div class="dr"><span class="dl">Actual Start</span><span class="dv">${fmtD(p.actual_start_date)}</span></div>
+        ${ieRow('Planned Start','planned_start_date',p.planned_start_date,'date')}
+        ${ieRow('Planned End',  'planned_end_date',  p.planned_end_date,  'date')}
+        ${ieRow('Actual Start', 'actual_start_date', p.actual_start_date, 'date')}
+        ${ieRow('Actual End',   'actual_end_date',   p.actual_end_date,   'date')}
       </div>
       <div class="dsec"><h4>Budget</h4>
-        <div class="dr"><span class="dl">Planned</span><span class="dv">${fmtM(p.planned_budget)}</span></div>
-        <div class="dr"><span class="dl">Approved</span><span class="dv">${fmtM(p.approved_budget)}</span></div>
-        <div class="dr"><span class="dl">Actual Cost</span><span class="dv">${fmtM(p.actual_cost)}</span></div>
+        ${ieRow('Planned (S$)',  'planned_budget',  p.planned_budget,  'number')}
+        ${ieRow('Approved (S$)', 'approved_budget', p.approved_budget, 'number')}
+        ${ieRow('Actual Cost (S$)','actual_cost',   p.actual_cost,     'number')}
+      </div>
+      <div class="dsec"><h4>Scope Summary</h4>
+        ${canE?`<textarea id="ie-scope-${p.$id}" rows="3" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:.76rem;font-family:inherit;resize:vertical" onchange="saveIE('${p.$id}','scope_summary',this.value,'text')">${esc(p.scope_summary||'')}</textarea>`:
+        `<p style="font-size:.76rem;color:var(--text2);line-height:1.5">${esc(p.scope_summary||'—')}</p>`}
       </div>
       <div class="dsec"><h4>Task Progress</h4>
         <div style="font-size:.75rem;color:var(--text2);margin-bottom:4px">${done} / ${tasks.length} tasks complete</div>
@@ -1549,13 +1599,39 @@ async function tOverview(p,el){
   </div>`;
 }
 
+// Save a single inline-edited field
+async function saveIE(pid, field, value, type){
+  let val=value;
+  if(type==='number') val=parseFloat(value)||0;
+  if(type==='bool')   val=value===true||value==='true';
+  if(type==='date')   val=value||'';
+  try{
+    await updateDoc('projects',pid,{[field]:val});
+    if(S.proj&&S.proj.$id===pid) S.proj[field]=val;
+    // Show subtle saved indicator
+    const indicator=document.createElement('span');
+    indicator.textContent='✓ saved';
+    indicator.style.cssText='position:fixed;bottom:60px;right:20px;background:var(--green);color:#fff;padding:4px 10px;border-radius:4px;font-size:.7rem;font-weight:600;z-index:700;animation:su .2s ease';
+    document.body.appendChild(indicator);
+    setTimeout(()=>indicator.remove(),1500);
+    await auditLog('PROJECT_FIELD_UPDATED','project',pid,`${field} updated`);
+  }catch(e){toast('Save error: '+e.message,'error');}
+}
+
+
 async function tInit(p,el){
-  const [ar,sk,is]=await Promise.all([
+  const [ar,sk,is,reqLink]=await Promise.all([
     listDocs('artefacts',[Query.equal('project_id',p.$id)]),
     listDocs('stakeholders',[Query.equal('project_id',p.$id)]),
-    listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')])
+    listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')]),
+    // Find a linked approved request by matching project code in request title (or institution)
+    listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')])
   ]);
   const charter=ar.documents.find(a=>a.artefact_type==='project_charter');
+  const businessCase=ar.documents.find(a=>a.artefact_type==='business_case');
+  // Find the most likely linked request (institution matches client_org or title matches)
+  const linkedReq=reqLink.documents.find(r=>r.title===p.name)||(reqLink.documents.length?reqLink.documents[0]:null);
+
   const types=[{t:'business_case',l:'Business Case'},{t:'benefits_management_plan',l:'Benefits Mgmt Plan'},{t:'project_charter',l:'Project Charter'},{t:'stakeholder_register',l:'Stakeholder Register'},{t:'raid_log',l:'RAID Log'}];
   const charterJson=charter?encodeURIComponent(JSON.stringify({$id:charter.$id,description:charter.description,status:charter.status,project_id:charter.project_id})):'';
   el.innerHTML=`
@@ -1574,15 +1650,25 @@ async function tInit(p,el){
   </div>
   <div class="g2" style="gap:11px;margin-bottom:11px">
     <div class="card">
-      <div class="ch"><span class="ct">Initiation Artefacts</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','initiation')">+ Add</button>`:''}</div>
+      <div class="ch"><span class="ct">Initiation Artefacts</span>
+        <div style="display:flex;gap:5px">
+          ${linkedReq&&canDo(['pmo','project_manager'])?`<button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importFromRequest('${p.$id}','${linkedReq.$id}')">⬇ Import from Request</button>`:''}
+          ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','initiation')">+ Add</button>`:''}
+        </div>
+      </div>
       <div class="cb" style="padding:9px"><div class="ag">
         ${types.map(at=>{const f=ar.documents.find(a=>a.artefact_type===at.t);return `<div class="acard" onclick="${at.t==='project_charter'?`openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))`:(f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','initiation','${at.t}')`)}">${at.t==='project_charter'?`<div style="position:absolute;top:6px;right:6px;font-size:.6rem">${charter?.status==='approved'?'✓':''}</div>`:''}<div class="at">${at.t.replace(/_/g,' ')}</div><div class="an">${f?esc(f.title):at.l}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.68rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
       </div></div>
     </div>
     <div class="card">
-      <div class="ch"><span class="ct">Stakeholder Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openStakeModal('${p.$id}')">+ Add</button>`:''}</div>
+      <div class="ch"><span class="ct">Stakeholder Register</span>
+        <div style="display:flex;gap:5px">
+          ${linkedReq&&canDo(['pmo','project_manager'])?`<button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importStakeholdersFromRequest('${p.$id}','${linkedReq.$id}')">⬇ Import</button>`:''}
+          ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openStakeModal('${p.$id}')">+ Add</button>`:''}
+        </div>
+      </div>
       <div class="tw"><table><thead><tr><th>Name</th><th>Org</th><th>Role</th><th>Influence</th><th>Engagement</th></tr></thead><tbody>
-      ${sk.documents.map(s=>`<tr><td style="font-weight:600">${esc(s.name)}</td><td style="font-size:.72rem">${esc(s.organisation||'—')}</td><td style="font-size:.72rem">${esc(s.role_title)}</td><td>${badge(s.influence_level)}</td><td>${badge(s.current_engagement)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No stakeholders</td></tr>'}
+      ${sk.documents.map(s=>`<tr><td style="font-weight:600">${esc(s.name)}</td><td style="font-size:.72rem">${esc(s.organisation||'—')}</td><td style="font-size:.72rem">${esc(s.role_title)}</td><td>${badge(s.influence_level)}</td><td>${badge(s.current_engagement)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No stakeholders — add manually or import from request</td></tr>'}
       </tbody></table></div>
     </div>
   </div>
@@ -1603,6 +1689,112 @@ async function tInit(p,el){
     </tbody></table></div>
   </div>`;
 }
+
+// Import Business Case artefact content from the linked project request
+async function importFromRequest(pid, reqId){
+  try{
+    const [r, v12res] = await Promise.all([
+      getDoc('project_requests', reqId),
+      listDocs('request_v12_data',[Query.equal('request_id',reqId)])
+    ]);
+    const v12 = v12res.documents[0]||null;
+    const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+
+    // Check if business case already exists
+    const existing=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type','business_case')]);
+
+    const bcData={
+      background:   r.business_problem||'',
+      objectives:   v12?.objectives||r.expected_benefits||'',
+      business_case:r.high_level_scope||'',
+      sales_revenue:v12?.sales_revenue||'',
+      products:     safeParse(v12?.products_json),
+      kpis:         safeParse(v12?.kpi_json),
+      po_number:    v12?.po_number||'',
+      institution:  v12?.institution||''
+    };
+
+    if(existing.documents.length){
+      // Update existing business case
+      await updateDoc('artefacts',existing.documents[0].$id,{description:JSON.stringify(bcData)});
+      toast('Business Case updated from request data','success');
+    } else {
+      // Create new
+      await createDoc('artefacts',{
+        project_id:pid, artefact_type:'business_case',
+        title:'Business Case — '+r.title,
+        description:JSON.stringify(bcData),
+        version:'1.0', status:'draft', process_group:'initiation',
+        owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+      });
+      toast('Business Case imported from request','success');
+    }
+    await auditLog('ARTEFACT_IMPORTED','artefact',pid,'Business case imported from project request',pid);
+    renderTab(S.ptab,S.proj);
+  }catch(e){toast('Import error: '+e.message,'error');}
+}
+
+// Import stakeholders from the linked project request
+async function importStakeholdersFromRequest(pid, reqId){
+  try{
+    const v12res=await listDocs('request_v12_data',[Query.equal('request_id',reqId)]);
+    const v12=v12res.documents[0]||null;
+    if(!v12||!v12.stakeholders_json){toast('No stakeholder data found in request','info');return;}
+    const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+    const stks=safeParse(v12.stakeholders_json);
+    if(!stks.length){toast('No stakeholders in request to import','info');return;}
+
+    let added=0;
+    for(const s of stks){
+      if(!s.institution&&!s.role&&!s.names) continue;
+      try{
+        await createDoc('stakeholders',{
+          project_id:pid,
+          name:s.names||s.institution||'',
+          organisation:s.institution||'',
+          role_title:s.role||'Stakeholder',
+          influence_level:'medium',
+          interest_level:'medium',
+          current_engagement:'neutral',
+          desired_engagement:'supportive'
+        });
+        added++;
+      }catch{}
+    }
+    toast(`${added} stakeholders imported from request`,'success');
+    await auditLog('STAKEHOLDERS_IMPORTED','stakeholder',pid,`${added} stakeholders imported from request`,pid);
+    renderTab(S.ptab,S.proj);
+  }catch(e){toast('Import error: '+e.message,'error');}
+}
+
+
+async function importEquipmentFromRequest(pid){
+  try{
+    // Find linked approved request for this project
+    const reqRes=await listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')]);
+    const linkedReq=reqRes.documents.find(r=>r.title===S.proj?.name)||(reqRes.documents.length?reqRes.documents[0]:null);
+    if(!linkedReq){toast('No approved request found to import from','info');return;}
+
+    const v12res=await listDocs('request_v12_data',[Query.equal('request_id',linkedReq.$id)]);
+    const v12=v12res.documents[0]||null;
+    if(!v12||!v12.products_json){toast('No product/equipment data in request','info');return;}
+    const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+    const products=safeParse(v12.products_json);
+    if(!products.length){toast('No products in request to import','info');return;}
+
+    // Add rows to the equipment table
+    const container=document.getElementById('ch-equip');
+    if(!container){toast('Open the Equipment tab first','info');return;}
+    products.forEach(prod=>{
+      if(!prod.description) return;
+      const div=document.createElement('div');div.className='dyn-row';
+      div.innerHTML=`<select class="w80"><option>In</option><option>Out</option></select><input value="${prod.description||''}" style="flex:2"><input value="${prod.remarks||''}" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button>`;
+      container.appendChild(div);
+    });
+    toast(`${products.length} items imported from request products`,'success');
+  }catch(e){toast('Import error: '+e.message,'error');}
+}
+
 
 function openCharterFromInit(pid, jsonStr){
   let art=null;
@@ -2794,6 +2986,166 @@ async function saveCharter(pid, artId, submit=false){
     toast(submit?'Charter saved and submitted for approval!':'Charter saved!','success');
     cm();if(S.proj)renderTab(S.ptab,S.proj);
   }catch(e){toast('Error: '+e.message,'error');}
+}
+
+
+// ─── PDF DOWNLOAD — Project Request Form ─────────────────────────────────
+async function downloadRequestPDF(id){
+  try{
+    const r=await getDoc('project_requests',id);
+    let v12=null;
+    try{const res=await listDocs('request_v12_data',[Query.equal('request_id',id)]);if(res.documents.length)v12=res.documents[0];}catch{}
+    const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
+    const products  =v12?safeParse(v12.products_json):[];
+    const mss       =v12?safeParse(v12.milestones_json):[];
+    const kpis      =v12?safeParse(v12.kpi_json):[];
+    const stks      =v12?safeParse(v12.stakeholders_json):[];
+    const maint     =v12?safeParse(v12.maintenance_json,{}):{}; 
+    const fin       =v12?safeParse(v12.finance_json,{}):{};
+
+    const escH=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const tableRow=(cells,hdr=false)=>`<tr>${cells.map(c=>`<t${hdr?'h':'d'}>${escH(c)}</t${hdr?'h':'d'}>`).join('')}</tr>`;
+
+    const html=`<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Project Request — ${escH(r.request_number||'PR')}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1A2B4A;padding:20mm}
+  h1{font-size:16pt;color:#0C2340;margin-bottom:4px}
+  h2{font-size:11pt;color:#0C2340;border-bottom:2px solid #0C2340;padding-bottom:3px;margin:16px 0 8px}
+  h3{font-size:9pt;color:#4A637A;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:12px;border-bottom:3px solid #0C2340}
+  .logo{font-size:14pt;font-weight:800;color:#0C2340}
+  .logo span{color:#0B8A82}
+  .badge{background:#E6F7F2;color:#0F9E6B;padding:2px 8px;border-radius:3px;font-size:8pt;font-weight:700;text-transform:uppercase}
+  .badge.amber{background:#FEF3C7;color:#D97706}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #DDE3EC;margin-bottom:12px}
+  .meta-row{display:flex;border-bottom:1px solid #DDE3EC;padding:5px 8px}
+  .meta-row:last-child{border-bottom:none}
+  .meta-lbl{font-size:8pt;font-weight:700;color:#4A637A;width:130px;flex-shrink:0}
+  .meta-val{font-size:9pt;color:#1A2B4A}
+  table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:9pt}
+  th{background:#0C2340;color:#fff;padding:5px 7px;text-align:left;font-size:8pt;font-weight:600}
+  td{padding:5px 7px;border-bottom:1px solid #DDE3EC;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#F5F7FA}
+  .text-block{background:#F5F7FA;border-left:3px solid #0C2340;padding:8px 10px;font-size:9pt;line-height:1.6;margin-bottom:10px;white-space:pre-wrap}
+  .flag{display:inline-block;background:#FEE2E2;color:#DC2626;padding:2px 7px;border-radius:3px;font-size:8pt;font-weight:700;margin-right:5px}
+  .flag.amber{background:#FEF3C7;color:#D97706}
+  .flag.purple{background:#EDE9FE;color:#7C3AED}
+  .section{page-break-inside:avoid}
+  .footer{margin-top:20px;padding-top:10px;border-top:1px solid #DDE3EC;font-size:8pt;color:#8A9EBA;display:flex;justify-content:space-between}
+  @media print{body{padding:10mm}h2{page-break-before:auto}}
+</style></head><body>
+<div class="header">
+  <div>
+    <div class="logo">Health<span>PM</span>360</div>
+    <div style="font-size:8pt;color:#8A9EBA;margin-top:2px">Singapore Healthcare System Integrator · Secure Platform</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:13pt;font-weight:700;color:#0C2340">PROJECT REQUEST FORM</div>
+    <div style="font-size:9pt;color:#4A637A">Version 1.2</div>
+    <div style="margin-top:4px"><span class="badge">✓ APPROVED</span></div>
+  </div>
+</div>
+
+<div class="section">
+<h2>Request Information</h2>
+<div class="meta-grid">
+  <div class="meta-row"><span class="meta-lbl">Request #</span><span class="meta-val">${escH(r.request_number||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">PO #</span><span class="meta-val">${escH(v12?.po_number||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Date</span><span class="meta-val">${new Date(r.$createdAt).toLocaleDateString('en-SG',{day:'2-digit',month:'long',year:'numeric'})}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Approved On</span><span class="meta-val">${r.approved_at?new Date(r.approved_at).toLocaleDateString('en-SG',{day:'2-digit',month:'long',year:'numeric'}):'—'}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Sales Manager</span><span class="meta-val">${escH(v12?.sales_manager||r.requestor_name||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Institution</span><span class="meta-val">${escH(v12?.institution||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Urgency</span><span class="meta-val">${escH(r.urgency_level||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Sales Revenue</span><span class="meta-val">${v12?.sales_revenue?'S$'+Number(v12.sales_revenue).toLocaleString():'—'}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Target Start</span><span class="meta-val">${r.target_start_date||'—'}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Target End</span><span class="meta-val">${r.target_end_date||'—'}</span></div>
+</div>
+<h3>Project Title</h3>
+<div style="font-size:12pt;font-weight:700;color:#0C2340;margin-bottom:10px">${escH(r.title)}</div>
+${r.regulatory_indicator||r.phi_involved||r.moh_reporting_required?`<div style="margin-bottom:10px">
+  ${r.regulatory_indicator?`<span class="flag amber">Regulatory</span>`:''}
+  ${r.phi_involved?`<span class="flag">PHI Involved</span>`:''}
+  ${r.moh_reporting_required?`<span class="flag purple">MOH Reporting</span>`:''}
+</div>`:''}
+</div>
+
+<div class="section">
+<h2>Project Overview</h2>
+<h3>Background</h3>
+<div class="text-block">${escH(r.business_problem||'—')}</div>
+<h3>Objectives</h3>
+<div class="text-block">${escH(v12?.objectives||r.expected_benefits||'—')}</div>
+<h3>Business Case</h3>
+<div class="text-block">${escH(r.high_level_scope||'—')}</div>
+</div>
+
+${products.length?`<div class="section">
+<h2>Sales Information — Products / Services</h2>
+<table><thead>${tableRow(['Description','Qty','Remarks'],true)}</thead><tbody>
+${products.map(p=>tableRow([p.description,p.qty,p.remarks])).join('')}
+</tbody></table></div>`:''}
+
+${mss.length?`<div class="section">
+<h2>Payment Milestones</h2>
+<table><thead>${tableRow(['Description / Payment Stage','%'],true)}</thead><tbody>
+${mss.map(m=>tableRow([m.description,m.percent||m.remarks||''])).join('')}
+</tbody></table></div>`:''}
+
+${kpis.length?`<div class="section">
+<h2>Success Criteria (KPIs)</h2>
+<table><thead>${tableRow(['Description','Method','Acceptance Threshold'],true)}</thead><tbody>
+${kpis.map(k=>tableRow([k.description,k.method,k.threshold])).join('')}
+</tbody></table></div>`:''}
+
+${stks.length?`<div class="section">
+<h2>Stakeholders</h2>
+<table><thead>${tableRow(['Institution','Role','Names'],true)}</thead><tbody>
+${stks.map(s=>tableRow([s.institution,s.role,s.names])).join('')}
+</tbody></table></div>`:''}
+
+<div class="section">
+<h2>Maintenance Information</h2>
+<div class="meta-grid">
+  <div class="meta-row"><span class="meta-lbl">Maintenance Type</span><span class="meta-val">${escH((maint.type||'NOT_APPLICABLE').replace(/_/g,' '))}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Frequency</span><span class="meta-val">${escH(maint.frequency||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Warranty</span><span class="meta-val">${maint.warranty?maint.warranty+' year(s)':'—'}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Notes</span><span class="meta-val">${escH(maint.notes||'—')}</span></div>
+</div>
+</div>
+
+<div class="section">
+<h2>Finance Information</h2>
+<div class="meta-grid">
+  <div class="meta-row"><span class="meta-lbl">Delivery (DO) #</span><span class="meta-val">${escH(fin.do_number||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">UAT Sign-off</span><span class="meta-val">${escH(fin.uat||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Commission</span><span class="meta-val">${escH(fin.commission||'—')}</span></div>
+  <div class="meta-row"><span class="meta-lbl">Warranty Period</span><span class="meta-val">${escH(fin.warranty_period||'—')}</span></div>
+</div>
+</div>
+
+${r.pmo_review_notes?`<div class="section">
+<h2>PMO Review Notes</h2>
+<div class="text-block">${escH(r.pmo_review_notes)}</div>
+</div>`:''}
+
+<div class="footer">
+  <span>HealthPM360 — Project Request Form v1.2 · ${escH(r.request_number||'')} · Generated ${new Date().toLocaleDateString('en-SG',{day:'2-digit',month:'long',year:'numeric'})}</span>
+  <span>APPROVED DOCUMENT — Authorised users only</span>
+</div>
+</body></html>`;
+
+    // Open in new window and trigger print
+    const win=window.open('','_blank','width=900,height=700');
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>{win.print();},500);
+    toast('PDF ready — use Print → Save as PDF','success',4000);
+  }catch(e){toast('PDF error: '+e.message,'error');}
 }
 
 
