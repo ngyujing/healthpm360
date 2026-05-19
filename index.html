@@ -1501,8 +1501,9 @@ async function apprReq(id){
     try{const res=await listDocs('request_v12_data',[Query.equal('request_id',id)]);if(res.documents.length)v12=res.documents[0];}catch{}
 
     const safeParse=(s,d=[])=>{try{return JSON.parse(s||'[]');}catch{return d;}};
-    const kpis=v12?safeParse(v12.kpi_json):[];
-    const mss=v12?safeParse(v12.milestones_json):[];
+    const kpis    = v12 ? safeParse(v12.kpi_json)        : [];
+    const mss     = v12 ? safeParse(v12.milestones_json) : [];
+    const products = v12 ? safeParse(v12.products_json)  : [];
 
     // 3. Auto-create project
     const projCode='PROJ-'+new Date().getFullYear()+'-'+String(Date.now()).slice(-4);
@@ -1547,15 +1548,25 @@ async function apprReq(id){
       owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
     });
 
-    // Project Charter placeholder
+    // Project Charter — pre-populate equipment from request products/services
+    const equipmentFromReq = products.map((p, i) => ({
+      no:          String(i + 1),
+      description: p.description || '',
+      qty:         p.qty         || '',
+      remarks:     p.remarks     || ''
+    }));
+
     await createDoc('artefacts',{
       project_id:   proj.$id,
       artefact_type:'project_charter',
       title:        'Project Charter — '+r.title,
       description:  JSON.stringify({
         _template:true,
-        scope:[],equipment:[],deliverables:[],
-        assumptions:[],constraints:[
+        scope:[],
+        equipment: equipmentFromReq,   // ← pre-filled from request products
+        deliverables:[],
+        assumptions:[],
+        constraints:[
           {type:'Budget',description:'',impact:''},
           {type:'Schedule',description:'',impact:''},
           {type:'Resources',description:'',impact:''},
@@ -1565,10 +1576,10 @@ async function apprReq(id){
         risks:[],
         team:[
           {position:'Project Manager',name:'',remarks:''},
-          {position:'Project Lead',name:'',remarks:''},
-          {position:'IT Engineer',name:'',remarks:''},
-          {position:'Engineer 1',name:'',remarks:''},
-          {position:'Engineer 2',name:'',remarks:''}
+          {position:'Project Lead',  name:'',remarks:''},
+          {position:'IT Engineer',   name:'',remarks:''},
+          {position:'Engineer 1',    name:'',remarks:''},
+          {position:'Engineer 2',    name:'',remarks:''}
         ]
       }),
       version:'1.0', status:'draft', process_group:'initiation',
