@@ -1872,56 +1872,146 @@ async function tInit(p,el){
     listDocs('artefacts',[Query.equal('project_id',p.$id)]),
     listDocs('stakeholders',[Query.equal('project_id',p.$id)]),
     listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')]),
-    // Find a linked approved request by matching project code in request title (or institution)
     listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')])
   ]);
-  const charter=ar.documents.find(a=>a.artefact_type==='project_charter');
-  const businessCase=ar.documents.find(a=>a.artefact_type==='business_case');
-  // Find the most likely linked request (institution matches client_org or title matches)
-  const linkedReq=reqLink.documents.find(r=>r.title===p.name)||(reqLink.documents.length?reqLink.documents[0]:null);
+  const charter     = ar.documents.find(a=>a.artefact_type==='project_charter');
+  const bcArt       = ar.documents.find(a=>a.artefact_type==='business_case');
+  const otherArts   = ar.documents.filter(a=>!['project_charter','business_case'].includes(a.artefact_type));
+  const linkedReq   = reqLink.documents.find(r=>r.title===p.name)||(reqLink.documents.length?reqLink.documents[0]:null);
+  const canE        = canDo(['pmo','project_manager']);
 
-  const types=[{t:'business_case',l:'Business Case'},{t:'benefits_management_plan',l:'Benefits Mgmt Plan'},{t:'project_charter',l:'Project Charter'},{t:'stakeholder_register',l:'Stakeholder Register'}];
-  const charterJson=charter?encodeURIComponent(JSON.stringify({$id:charter.$id,description:charter.description,status:charter.status,project_id:charter.project_id})):'';
+  // Parse business case text from artefact (handles both plain text and old JSON wrapper)
+  let bcData={background:'',objectives:'',business_case:''};
+  if(bcArt?.description){
+    try{
+      const parsed=JSON.parse(bcArt.description);
+      // If old format {business_case:"text"} or new format {background,objectives,business_case}
+      bcData.business_case = parsed.business_case||parsed.text||'';
+      bcData.background    = parsed.background||'';
+      bcData.objectives    = parsed.objectives||'';
+    }catch{
+      // Plain text storage
+      bcData.business_case = bcArt.description;
+    }
+  }
+
+  const charterJson = charter ? encodeURIComponent(JSON.stringify({
+    $id:charter.$id, description:charter.description,
+    status:charter.status, project_id:charter.project_id
+  })) : '';
+
   el.innerHTML=`
-  <div style="background:${charter?charter.status==='approved'?'var(--green-bg)':'var(--blue-light)':'var(--amber-bg)'};border-left:4px solid ${charter?charter.status==='approved'?'var(--green)':'var(--blue)':'var(--amber)'};border-radius:8px;padding:12px 15px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between">
-    <div>
-      <div style="font-size:.8rem;font-weight:700;color:${charter?charter.status==='approved'?'var(--green)':'var(--blue)':'var(--amber)'}">
-        ${charter?charter.status==='approved'?'✓ Project Charter Approved':'📝 Project Charter — '+charter.status.replace(/_/g,' '):'⚠ Project Charter Not Started'}
-      </div>
-      <div style="font-size:.72rem;color:var(--text2);margin-top:2px">
-        ${charter?'Contains: Scope · Equipment · Deliverables · Assumptions · Constraints · Risks · Project Team':'Complete the Project Charter to auto-populate planning artefacts and registers.'}
+  <!-- ── BUSINESS CASE CARD ─────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:11px" id="bc-card-${p.$id}">
+    <div class="ch">
+      <span class="ct">📄 Business Case</span>
+      <div style="display:flex;gap:5px;align-items:center">
+        ${bcArt?badge(bcArt.status):'<span class="badge bg-gray">Not Started</span>'}
+        ${linkedReq&&canE?`<button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importBCFromRequest('${p.$id}','${linkedReq.$id}')">⬇ Import from Request</button>`:''}
+        ${canE?`<button class="btn btn-ghost btn-sm" onclick="toggleBCEdit('${p.$id}')">✏ Edit</button>`:''}
+        ${canE&&bcArt?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeBCCard('${p.$id}','${bcArt.$id}')">✕ Remove</button>`:''}
+        ${canE&&!bcArt?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="document.getElementById('bc-card-${p.$id}').style.display='none'">✕</button>`:''}
       </div>
     </div>
-    <button class="btn ${charter?'btn-ghost':'btn-primary'} btn-sm" onclick="openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))">
-      ${charter?'Edit Charter →':'Start Charter →'}
-    </button>
-  </div>
-  <div class="g2" style="gap:11px;margin-bottom:11px">
-    <div class="card">
-      <div class="ch"><span class="ct">Initiation Artefacts</span>
-        <div style="display:flex;gap:5px">
-          ${linkedReq&&canDo(['pmo','project_manager'])?`<button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importFromRequest('${p.$id}','${linkedReq.$id}')">⬇ Import from Request</button>`:''}
-          ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','initiation')">+ Add</button>`:''}
-        </div>
-      </div>
-      <div class="cb" style="padding:9px"><div class="ag">
-        ${types.map(at=>{const f=ar.documents.find(a=>a.artefact_type===at.t);return `<div class="acard" onclick="${at.t==='project_charter'?`openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))`:(f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','initiation','${at.t}')`)}">${at.t==='project_charter'?`<div style="position:absolute;top:6px;right:6px;font-size:.6rem">${charter?.status==='approved'?'✓':''}</div>`:''}<div class="at">${at.t.replace(/_/g,' ')}</div><div class="an">${f?esc(f.title):at.l}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.68rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
-      </div></div>
+    <div class="cb" id="bc-view-${p.$id}">
+      ${bcData.background||bcData.objectives||bcData.business_case
+        ? `${bcData.background?`<div style="margin-bottom:10px"><div style="font-size:.67rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Background</div><p style="font-size:.8rem;line-height:1.6;white-space:pre-wrap">${esc(bcData.background)}</p></div>`:''}
+           ${bcData.objectives?`<div style="margin-bottom:10px"><div style="font-size:.67rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Objectives</div><p style="font-size:.8rem;line-height:1.6;white-space:pre-wrap">${esc(bcData.objectives)}</p></div>`:''}
+           ${bcData.business_case?`<div><div style="font-size:.67rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Business Case</div><p style="font-size:.8rem;line-height:1.6;white-space:pre-wrap">${esc(bcData.business_case)}</p></div>`:''}
+          `
+        : `<p style="color:var(--text3);font-size:.8rem;padding:8px 0">No business case content yet. Click <strong>Edit</strong> to add or <strong>Import from Request</strong> to fill automatically.</p>`
+      }
     </div>
-    <div class="card">
-      <div class="ch"><span class="ct">Stakeholder Register</span>
-        <div style="display:flex;gap:5px">
-          ${linkedReq&&canDo(['pmo','project_manager'])?`<button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importStakeholdersFromRequest('${p.$id}','${linkedReq.$id}')">⬇ Import</button>`:''}
-          ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openStakeModal('${p.$id}')">+ Add</button>`:''}
-        </div>
+    <div class="cb" id="bc-edit-${p.$id}" style="display:none">
+      <div class="fg" style="margin-bottom:10px"><label>Background</label>
+        <textarea id="bc-bg-${p.$id}" rows="3" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical">${esc(bcData.background)}</textarea></div>
+      <div class="fg" style="margin-bottom:10px"><label>Objectives</label>
+        <textarea id="bc-obj-${p.$id}" rows="3" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical">${esc(bcData.objectives)}</textarea></div>
+      <div class="fg" style="margin-bottom:10px"><label>Business Case</label>
+        <textarea id="bc-txt-${p.$id}" rows="4" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical">${esc(bcData.business_case)}</textarea></div>
+      <div style="display:flex;gap:7px">
+        <button class="btn btn-primary btn-sm" onclick="saveBC('${p.$id}','${bcArt?bcArt.$id:''}')">Save Business Case</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleBCEdit('${p.$id}')">Cancel</button>
       </div>
-      <div class="tw"><table><thead><tr><th>Name</th><th>Org</th><th>Role</th><th>Influence</th><th>Engagement</th></tr></thead><tbody>
-      ${sk.documents.map(s=>`<tr><td style="font-weight:600">${esc(s.name)}</td><td style="font-size:.72rem">${esc(s.organisation||'—')}</td><td style="font-size:.72rem">${esc(s.role_title)}</td><td>${badge(s.influence_level)}</td><td>${badge(s.current_engagement)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No stakeholders — add manually or import from request</td></tr>'}
-      </tbody></table></div>
     </div>
   </div>
+
+  <!-- ── PROJECT CHARTER CARD ──────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:11px">
+    <div class="ch">
+      <span class="ct">📋 Project Charter</span>
+      <div style="display:flex;gap:5px;align-items:center">
+        ${charter?badge(charter.status):'<span class="badge bg-gray">Not Started</span>'}
+        <button class="btn ${charter?'btn-ghost':'btn-primary'} btn-sm" onclick="openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))">
+          ${charter?'✏ Edit Charter':'Start Charter →'}
+        </button>
+      </div>
+    </div>
+    <div class="cb">
+      ${charter?(()=>{
+        let cd={scope:[],equipment:[],deliverables:[],risks:[],team:[]};
+        try{cd=JSON.parse(charter.description||'{}');}catch{}
+        return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px">
+          ${[
+            ['Scope items',    (cd.scope||[]).length],
+            ['Equipment',      (cd.equipment||[]).length],
+            ['Deliverables',   (cd.deliverables||[]).length],
+            ['Assumptions',    (cd.assumptions||[]).length],
+            ['Risks',          (cd.risks||[]).length],
+            ['Team members',   (cd.team||[]).filter(t=>t.name).length],
+          ].map(([l,n])=>`<div style="background:#F5F7FA;border-radius:7px;padding:9px 11px;text-align:center">
+            <div style="font-size:1.3rem;font-weight:800;color:var(--blue)">${n}</div>
+            <div style="font-size:.65rem;color:var(--text2)">${l}</div>
+          </div>`).join('')}
+        </div>
+        <div style="font-size:.72rem;color:var(--text2)">Last updated: ${fmtD(charter.$updatedAt||charter.$createdAt)}</div>`;
+      })():`<p style="color:var(--text3);font-size:.8rem;padding:4px 0">No charter yet. Click <strong>Start Charter →</strong> to fill in Scope, Equipment, Deliverables, Assumptions, Constraints, Risks and Project Team.</p>`}
+    </div>
+  </div>
+
+  <!-- ── OTHER INITIATION ARTEFACTS ────────────────────────────────── -->
+  <div class="card" style="margin-bottom:11px">
+    <div class="ch">
+      <span class="ct">📁 Other Initiation Artefacts</span>
+      ${canE?`<button class="btn btn-primary btn-sm" onclick="addInitArtCard('${p.$id}')">+ Add Artefact</button>`:''}
+    </div>
+    <div id="init-arts-${p.$id}" style="padding:10px;display:flex;flex-direction:column;gap:10px">
+      ${otherArts.length===0?`<p style="color:var(--text3);font-size:.8rem;margin:0">No artefacts yet. Click <strong>+ Add Artefact</strong> to create one.</p>`:''}
+      ${otherArts.map(a=>`
+        <div class="init-art-card" id="iac-${a.$id}" style="border:1.5px solid var(--border);border-radius:8px;padding:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <span style="font-size:.65rem;background:#E8F1FD;color:var(--blue);padding:2px 7px;border-radius:3px;font-weight:700;text-transform:uppercase">${esc(a.artefact_type.replace(/_/g,' '))}</span>
+              <span style="font-size:.8rem;font-weight:700;margin-left:8px">${esc(a.title)}</span>
+            </div>
+            <div style="display:flex;gap:5px">
+              ${badge(a.status)}
+              ${canE?`<button class="btn btn-ghost btn-sm" onclick="editInitArtCard('${a.$id}','${p.$id}')">✏ Edit</button>`:''}
+              ${canE?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeInitArtCard('${a.$id}','${p.$id}')">✕ Remove</button>`:''}
+            </div>
+          </div>
+          <p style="font-size:.78rem;color:var(--text2);line-height:1.5;white-space:pre-wrap;margin:0">${esc(a.description||'No description').substring(0,300)}${(a.description||'').length>300?'…':''}</p>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <!-- ── STAKEHOLDER REGISTER ───────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:11px">
+    <div class="ch"><span class="ct">👥 Stakeholder Register</span>
+      <div style="display:flex;gap:5px">
+        ${linkedReq&&canE?`<button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importStakeholdersFromRequest('${p.$id}','${linkedReq.$id}')">⬇ Import</button>`:''}
+        ${canE?`<button class="btn btn-primary btn-sm" onclick="openStakeModal('${p.$id}')">+ Add</button>`:''}
+      </div>
+    </div>
+    <div class="tw"><table><thead><tr><th>Name</th><th>Organisation</th><th>Role</th><th>Influence</th><th>Engagement</th></tr></thead><tbody>
+    ${sk.documents.map(s=>`<tr><td style="font-weight:600">${esc(s.name)}</td><td style="font-size:.72rem">${esc(s.organisation||'—')}</td><td style="font-size:.72rem">${esc(s.role_title)}</td><td>${badge(s.influence_level)}</td><td>${badge(s.current_engagement)}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No stakeholders — add manually or import from request</td></tr>'}
+    </tbody></table></div>
+  </div>
+
+  <!-- ── RAID LOG ───────────────────────────────────────────────────── -->
   <div class="card">
-    <div class="ch"><span class="ct">RAID Log (Risks, Assumptions, Issues, Dependencies)</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log Issue</button>`:''}</div>
+    <div class="ch"><span class="ct">⚠ RAID Log</span>${canE?`<button class="btn btn-primary btn-sm" onclick="openIssModal('${p.$id}')">+ Log Issue</button>`:''}</div>
     <div class="tw"><table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Severity</th><th>Status</th><th>Actions</th></tr></thead><tbody>
     ${is.documents.map(i=>`<tr>
       <td class="mono">${esc(i.issue_id||'—')}</td>
@@ -1930,44 +2020,190 @@ async function tInit(p,el){
       <td>${badge(i.severity)}</td>
       <td>${badge(i.status)}</td>
       <td class="iss-actions">
-        ${i.status==='open'||i.status==='in_progress'?`<button class="btn-resolve" onclick="resolveIssue('${i.$id}','${p.$id}')">Resolve</button>`:
-        `<button class="btn-reopen" onclick="quickUpdateIssue('${i.$id}','open','${p.$id}')">Reopen</button>`}
+        ${i.status==='open'||i.status==='in_progress'
+          ?`<button class="btn-resolve" onclick="resolveIssue('${i.$id}','${p.$id}')">Resolve</button>`
+          :`<button class="btn-reopen" onclick="quickUpdateIssue('${i.$id}','open','${p.$id}')">Reopen</button>`}
         <button class="btn btn-ghost btn-sm" onclick="viewIssue('${i.$id}','${p.$id}')">View</button>
       </td></tr>`).join('')||'<tr><td colspan="6" class="te">No RAID items</td></tr>'}
     </tbody></table></div>
   </div>`;
 }
 
-// Import Business Case artefact content from the linked project request
-async function importFromRequest(pid, reqId){
+// ── Business Case helpers ─────────────────────────────────────────────────
+function toggleBCEdit(pid){
+  const v=document.getElementById(`bc-view-${pid}`);
+  const e=document.getElementById(`bc-edit-${pid}`);
+  if(!v||!e) return;
+  const editing = e.style.display!=='none';
+  v.style.display=editing?'':'none';
+  e.style.display=editing?'none':'';
+}
+
+async function saveBC(pid, artId){
+  const bg  = document.getElementById(`bc-bg-${pid}`)?.value?.trim()||'';
+  const obj = document.getElementById(`bc-obj-${pid}`)?.value?.trim()||'';
+  const txt = document.getElementById(`bc-txt-${pid}`)?.value?.trim()||'';
+  const description = JSON.stringify({background:bg, objectives:obj, business_case:txt});
   try{
-    const r=await getDoc('project_requests', reqId);
-
-    // Check if business case already exists
-    const existing=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type','business_case')]);
-
-    // Only import the business case text
-    const bcData={
-      business_case: r.high_level_scope||''
-    };
-
-    if(existing.documents.length){
-      await updateDoc('artefacts',existing.documents[0].$id,{description:JSON.stringify(bcData)});
-      toast('Business Case text updated from request','success');
+    if(artId){
+      await updateDoc('artefacts',artId,{description});
     } else {
       await createDoc('artefacts',{
         project_id:pid, artefact_type:'business_case',
-        title:'Business Case — '+r.title,
-        description:JSON.stringify(bcData),
-        version:'1.0', status:'draft', process_group:'initiation',
+        title:'Business Case',
+        description, version:'1.0', status:'draft', process_group:'initiation',
         owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
       });
-      toast('Business Case imported from request','success');
     }
-    await auditLog('ARTEFACT_IMPORTED','artefact',pid,'Business case text imported from project request',pid);
-    renderTab(S.ptab,S.proj);
+    toast('Business Case saved!','success');
+    if(S.proj) renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function removeBCCard(pid, artId){
+  if(!confirm('Remove Business Case artefact? This cannot be undone.')) return;
+  try{
+    await db.deleteDocument(DB_ID,'artefacts',artId);
+    toast('Business Case removed','info');
+    if(S.proj) renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function importBCFromRequest(pid, reqId){
+  try{
+    const r=await getDoc('project_requests', reqId);
+    let v12=null;
+    try{const res=await listDocs('request_v12_data',[Query.equal('request_id',reqId)]);if(res.documents.length)v12=res.documents[0];}catch{}
+
+    // Fill edit fields with plain text values
+    const bg  = document.getElementById(`bc-bg-${pid}`);
+    const obj = document.getElementById(`bc-obj-${pid}`);
+    const txt = document.getElementById(`bc-txt-${pid}`);
+
+    // Show edit pane first
+    document.getElementById(`bc-view-${pid}`).style.display='none';
+    document.getElementById(`bc-edit-${pid}`).style.display='';
+
+    if(bg)  bg.value  = r.business_problem||'';
+    if(obj) obj.value = v12?.objectives||r.expected_benefits||'';
+    if(txt) txt.value = r.high_level_scope||'';
+
+    toast('Business Case fields imported — review and save','success');
   }catch(e){toast('Import error: '+e.message,'error');}
 }
+
+// ── Other Initiation Artefacts — inline card system ──────────────────────
+const ART_TYPES_INIT=[
+  'benefits_management_plan','stakeholder_register','assumption_log',
+  'project_brief','feasibility_study','lessons_learned',
+  'scope_statement','requirements_register','other'
+];
+
+function addInitArtCard(pid){
+  const container=document.getElementById(`init-arts-${pid}`);
+  if(!container) return;
+  // Remove "no artefacts" placeholder if present
+  const ph=container.querySelector('p');
+  if(ph) ph.remove();
+
+  const uid='new-'+Date.now();
+  const div=document.createElement('div');
+  div.className='init-art-card';
+  div.id=`iac-${uid}`;
+  div.style.cssText='border:2px dashed var(--blue);border-radius:8px;padding:14px;background:var(--blue-light)';
+  div.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:.78rem;font-weight:700;color:var(--blue)">New Artefact</span>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="document.getElementById('iac-${uid}').remove();checkEmptyArts('${pid}')">✕ Cancel</button>
+    </div>
+    <div class="fgrid" style="gap:8px;margin-bottom:10px">
+      <div class="fg"><label>Type</label>
+        <select id="iac-type-${uid}" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">
+          ${ART_TYPES_INIT.map(t=>`<option value="${t}">${t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Title <span class="req">*</span></label>
+        <input id="iac-title-${uid}" placeholder="e.g. Benefits Management Plan" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">
+      </div>
+      <div class="fg s2"><label>Description / Content</label>
+        <textarea id="iac-desc-${uid}" rows="4" placeholder="Enter the artefact content…" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical"></textarea>
+      </div>
+      <div class="fg s2"><label>Version</label>
+        <input id="iac-ver-${uid}" value="1.0" style="width:80px;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">
+      </div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-primary btn-sm" onclick="saveInitArtCard('${uid}','${pid}')">💾 Save Artefact</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('iac-${uid}').remove();checkEmptyArts('${pid}')">Cancel</button>
+    </div>`;
+  container.appendChild(div);
+}
+
+async function saveInitArtCard(uid, pid){
+  const type  = document.getElementById(`iac-type-${uid}`)?.value||'other';
+  const title = document.getElementById(`iac-title-${uid}`)?.value?.trim()||'';
+  const desc  = document.getElementById(`iac-desc-${uid}`)?.value?.trim()||'';
+  const ver   = document.getElementById(`iac-ver-${uid}`)?.value?.trim()||'1.0';
+  if(!title){toast('Title is required','error');return;}
+  try{
+    const doc=await createDoc('artefacts',{
+      project_id:pid, artefact_type:type, title, description:desc,
+      version:ver, status:'draft', process_group:'initiation',
+      owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+    });
+    toast(`${title} saved!`,'success');
+    // Replace the "new" card with a saved card
+    const container=document.getElementById(`init-arts-${pid}`);
+    const card=document.getElementById(`iac-${uid}`);
+    if(card){
+      card.style.cssText='border:1.5px solid var(--border);border-radius:8px;padding:12px';
+      card.id=`iac-${doc.$id}`;
+      card.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div>
+            <span style="font-size:.65rem;background:#E8F1FD;color:var(--blue);padding:2px 7px;border-radius:3px;font-weight:700;text-transform:uppercase">${esc(type.replace(/_/g,' '))}</span>
+            <span style="font-size:.8rem;font-weight:700;margin-left:8px">${esc(title)}</span>
+          </div>
+          <div style="display:flex;gap:5px">
+            <span class="badge bg-gray">draft</span>
+            <button class="btn btn-ghost btn-sm" onclick="editInitArtCard('${doc.$id}','${pid}')">✏ Edit</button>
+            <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeInitArtCard('${doc.$id}','${pid}')">✕ Remove</button>
+          </div>
+        </div>
+        <p style="font-size:.78rem;color:var(--text2);line-height:1.5;white-space:pre-wrap;margin:0">${esc(desc).substring(0,300)}${desc.length>300?'…':''}</p>`;
+    }
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function removeInitArtCard(artId, pid){
+  if(!confirm('Remove this artefact? This cannot be undone.')) return;
+  try{
+    await db.deleteDocument(DB_ID,'artefacts',artId);
+    const card=document.getElementById(`iac-${artId}`);
+    if(card) card.remove();
+    checkEmptyArts(pid);
+    toast('Artefact removed','info');
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+function editInitArtCard(artId, pid){
+  // Re-render tab to get fresh data with edit mode
+  // For simplicity open in existing art form
+  openPlanArtFormById(pid, null, artId);
+}
+
+function checkEmptyArts(pid){
+  const c=document.getElementById(`init-arts-${pid}`);
+  if(!c) return;
+  const cards=c.querySelectorAll('.init-art-card');
+  if(!cards.length){
+    const p=document.createElement('p');
+    p.style.cssText='color:var(--text3);font-size:.8rem;margin:0';
+    p.innerHTML='No artefacts yet. Click <strong>+ Add Artefact</strong> to create one.';
+    c.appendChild(p);
+  }
+}
+
 
 // Import stakeholders from the linked project request
 async function importStakeholdersFromRequest(pid, reqId){
