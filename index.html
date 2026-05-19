@@ -1994,7 +1994,6 @@ async function importStakeholdersFromRequest(pid, reqId){
 
 async function importEquipmentFromRequest(pid){
   try{
-    // Find linked approved request for this project
     const reqRes=await listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')]);
     const linkedReq=reqRes.documents.find(r=>r.title===S.proj?.name)||(reqRes.documents.length?reqRes.documents[0]:null);
     if(!linkedReq){toast('No approved request found to import from','info');return;}
@@ -2006,13 +2005,17 @@ async function importEquipmentFromRequest(pid){
     const products=safeParse(v12.products_json);
     if(!products.length){toast('No products in request to import','info');return;}
 
-    // Add rows to the equipment table
     const container=document.getElementById('ch-equip');
     if(!container){toast('Open the Equipment tab first','info');return;}
-    products.forEach(prod=>{
+
+    // Clear existing rows before importing
+    container.innerHTML='';
+
+    products.forEach((prod,i)=>{
       if(!prod.description) return;
+      const no=String(i+1);
       const div=document.createElement('div');div.className='dyn-row';
-      div.innerHTML=`<select class="w80"><option>In</option><option>Out</option></select><input value="${prod.description||''}" style="flex:2"><input value="${prod.qty||''}" class="w80" placeholder="Qty"><input value="${prod.remarks||''}" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button>`;
+      div.innerHTML=`<input value="${no}" class="w80" placeholder="No."><input value="${prod.description||''}" placeholder="Description" style="flex:2"><input value="${prod.qty||''}" class="w80" placeholder="Qty"><input value="${prod.remarks||''}" class="w160" placeholder="Remarks"><button class="rm" onclick="this.parentElement.remove()">✕</button>`;
       container.appendChild(div);
     });
     toast(`${products.length} items imported from request products`,'success');
@@ -3217,10 +3220,14 @@ function openCharterModal(pid, artId, art){
 
   <!-- EQUIPMENT -->
   <div class="cpane" id="ch2">
-    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">List equipment included or excluded from this project.</p>
-    ${dynHdr(['In/Out','Description','Remarks',''],['w80','','w160','w32'])}
-    <div id="ch-equip">${equipment.map(r=>scRow([r.inout,r.description,r.remarks])).join('')}</div>
-    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-equip');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<select class=\\'w80\\'><option>In</option><option>Out</option></select><input placeholder=\\'Description\\' style=\\'flex:2\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Row</button>
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">List all equipment and products. Import from project request or add manually.</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:.72rem;color:var(--text3)">No. · Description · Qty · Remarks</span>
+      <button class="btn btn-ghost btn-sm" style="color:var(--teal)" onclick="importEquipmentFromRequest('${pid}')">⬇ Import from Request</button>
+    </div>
+    ${dynHdr(['No.','Description','Qty','Remarks',''],['w80','','w80','w160','w32'])}
+    <div id="ch-equip">${equipment.map((r,i)=>`<div class="dyn-row"><input value="${esc(r.no||String(i+1))}" class="w80" placeholder="No."><input value="${esc(r.description||'')}" placeholder="Description" style="flex:2"><input value="${esc(r.qty||'')}" placeholder="Qty" class="w80"><input value="${esc(r.remarks||'')}" placeholder="Remarks" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-equip');const n=d.children.length+1;const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input value=\\''+n+'\\' class=\\'w80\\' placeholder=\\'No.\\'><input placeholder=\\'Description\\' style=\\'flex:2\\'><input placeholder=\\'Qty\\' class=\\'w80\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Row</button>
   </div>
 
   <!-- DELIVERABLES -->
@@ -3283,7 +3290,7 @@ async function saveCharter(pid, artId, submit=false){
   };
 
   const scope        = getTableRows('ch-scope',['inout','description','remarks']);
-  const equipment    = getTableRows('ch-equip',['inout','description','qty','remarks']);
+  const equipment    = getTableRows('ch-equip',['no','description','qty','remarks']);
   const deliverables = getTableRows('ch-del',  ['description','planned_date']);
   const assumptions  = getTableRows('ch-ass',  ['description','dependency','validation']);
   const constraints  = getTableRows('ch-con',  ['type','description','impact']);
@@ -3334,7 +3341,7 @@ async function saveCharter(pid, artId, submit=false){
       if(existing.documents.length){
         try{
           const d=JSON.parse(existing.documents[0].description||'{}');
-          d.equipment_rows=equipment;
+          d.equipment_rows=equipment; // [{no, description, qty, remarks}]
           await updateDoc('artefacts',existing.documents[0].$id,{description:JSON.stringify(d)});
         }catch{}
       } else {
