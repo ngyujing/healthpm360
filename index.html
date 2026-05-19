@@ -1936,36 +1936,158 @@ async function tInit(p,el){
     </div>
   </div>
 
-  <!-- ── PROJECT CHARTER CARD ──────────────────────────────────────── -->
-  <div class="card" style="margin-bottom:11px">
+  <!-- ── PROJECT CHARTER CARD (INLINE FORM) ──────────────────────────── -->
+  <div class="card" style="margin-bottom:11px" id="charter-card-${p.$id}">
     <div class="ch">
-      <span class="ct">📋 Project Charter</span>
-      <div style="display:flex;gap:5px;align-items:center">
-        ${charter?badge(charter.status):'<span class="badge bg-gray">Not Started</span>'}
-        <button class="btn ${charter?'btn-ghost':'btn-primary'} btn-sm" onclick="openCharterFromInit('${p.$id}',decodeURIComponent('${charterJson}'))">
-          ${charter?'✏ Edit Charter':'Start Charter →'}
-        </button>
+      <div>
+        <span class="ct">📋 Project Charter</span>
+        ${charter?`<span style="margin-left:8px">${badge(charter.status)}</span>`:'<span class="badge bg-gray" style="margin-left:8px">Not Started</span>'}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:.7rem;color:var(--text3)">Edit inline below — click Save when done</span>
+        ${canE?`<button class="btn btn-primary btn-sm" onclick="saveCharterInline('${p.$id}','${charter?charter.$id:''}')">💾 Save Charter</button>`:''}
+        ${canE&&charter&&charter.status==='draft'?`<button class="btn btn-warning btn-sm" onclick="saveCharterInline('${p.$id}','${charter.$id}',true)">Submit for Approval</button>`:''}
       </div>
     </div>
-    <div class="cb">
-      ${charter?(()=>{
-        let cd={scope:[],equipment:[],deliverables:[],risks:[],team:[]};
-        try{cd=JSON.parse(charter.description||'{}');}catch{}
-        return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px">
-          ${[
-            ['Scope items',    (cd.scope||[]).length],
-            ['Equipment',      (cd.equipment||[]).length],
-            ['Deliverables',   (cd.deliverables||[]).length],
-            ['Assumptions',    (cd.assumptions||[]).length],
-            ['Risks',          (cd.risks||[]).length],
-            ['Team members',   (cd.team||[]).filter(t=>t.name).length],
-          ].map(([l,n])=>`<div style="background:#F5F7FA;border-radius:7px;padding:9px 11px;text-align:center">
-            <div style="font-size:1.3rem;font-weight:800;color:var(--blue)">${n}</div>
-            <div style="font-size:.65rem;color:var(--text2)">${l}</div>
-          </div>`).join('')}
+    <div class="cb" style="padding:0">
+
+    ${(()=>{
+      // Parse existing charter data
+      let cd={scope:[],equipment:[],deliverables:[],assumptions:[],constraints:[
+        {type:'Budget',description:'',impact:''},
+        {type:'Schedule',description:'',impact:''},
+        {type:'Resources',description:'',impact:''},
+        {type:'Technology',description:'',impact:''},
+        {type:'Regulatory',description:'',impact:''}
+      ],risks:[],team:[
+        {position:'Project Manager',name:'',remarks:''},
+        {position:'Project Lead',name:'',remarks:''},
+        {position:'IT Engineer',name:'',remarks:''},
+        {position:'Engineer 1',name:'',remarks:''},
+        {position:'Engineer 2',name:'',remarks:''}
+      ]};
+      if(charter?.description){try{const p=JSON.parse(charter.description);Object.assign(cd,p);}catch{}}
+
+      const sec=(title,icon,content)=>`<div style="border-top:1px solid var(--border);padding:13px 16px">
+        <div style="font-size:.73rem;font-weight:700;color:var(--text2);margin-bottom:9px;display:flex;align-items:center;gap:5px"><span>${icon}</span>${title}</div>
+        ${content}
+      </div>`;
+
+      const tblHdr=(cols)=>`<div class="dyn-hdr" style="padding:0 0 4px">${cols.map(([l,w])=>`<span class="${w}">${l}</span>`).join('')}<span style="flex:0 0 32px"></span></div>`;
+
+      // ── SCOPE ─────────────────────────────────────────────────────────
+      const scopeRows=(cd.scope||[]).map(r=>`<div class="dyn-row">
+        <select class="w80"><option ${(r.inout||'In')==='In'?'selected':''}>In</option><option ${r.inout==='Out'?'selected':''}>Out</option></select>
+        <input value="${esc(r.description||'')}" placeholder="Scope description" style="flex:2">
+        <input value="${esc(r.remarks||'')}" placeholder="Remarks" class="w160">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      // ── EQUIPMENT ─────────────────────────────────────────────────────
+      const equipRows=(cd.equipment||[]).map((r,i)=>`<div class="dyn-row">
+        <input value="${esc(r.no||String(i+1))}" class="w80" placeholder="No.">
+        <input value="${esc(r.description||'')}" placeholder="Description" style="flex:2">
+        <input value="${esc(r.qty||'')}" class="w80" placeholder="Qty">
+        <input value="${esc(r.remarks||'')}" class="w160" placeholder="Remarks">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      // ── DELIVERABLES ──────────────────────────────────────────────────
+      const delRows=(cd.deliverables||[]).map(r=>`<div class="dyn-row">
+        <input value="${esc(r.description||'')}" placeholder="Deliverable description" style="flex:2">
+        <input type="date" value="${esc(r.planned_date||'')}" class="w160">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      // ── ASSUMPTIONS ───────────────────────────────────────────────────
+      const assRows=(cd.assumptions||[]).map(r=>`<div class="dyn-row">
+        <input value="${esc(r.description||'')}" placeholder="Assumption" style="flex:2">
+        <input value="${esc(r.dependency||'')}" placeholder="Dependency" class="w160">
+        <input value="${esc(r.validation||'')}" placeholder="Validation Method" class="w160">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      // ── CONSTRAINTS ───────────────────────────────────────────────────
+      const conRows=(cd.constraints||[]).map(r=>`<div class="dyn-row">
+        <input value="${esc(r.type||'')}" class="w120" placeholder="Type" style="font-weight:600">
+        <input value="${esc(r.description||'')}" placeholder="Description" style="flex:2">
+        <input value="${esc(r.impact||'')}" placeholder="Impact" class="w160">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      // ── RISKS ─────────────────────────────────────────────────────────
+      const rskRows=(cd.risks||[]).map(r=>`<div class="dyn-row">
+        <input value="${esc(r.risk||'')}" placeholder="Risk description" style="flex:2">
+        <select class="w120">
+          ${['Technical Risk','Schedule Risk','User Adoption Risk','Resource Risk','Regulatory Risk'].map(t=>`<option ${r.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <select class="w80">
+          ${['low','medium','high','critical'].map(l=>`<option value="${l}" ${(r.level||'medium')===l?'selected':''}>${l.charAt(0).toUpperCase()+l.slice(1)}</option>`).join('')}
+        </select>
+        <input value="${esc(r.mitigation||'')}" placeholder="Mitigation plan" class="w160">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      // ── TEAM ──────────────────────────────────────────────────────────
+      const teamRows=(cd.team||[]).map(r=>`<div class="dyn-row">
+        <input value="${esc(r.position||'')}" class="w160" placeholder="Position" style="font-weight:600">
+        <input value="${esc(r.name||'')}" placeholder="Full Name" style="flex:2">
+        <input value="${esc(r.remarks||'')}" placeholder="Remarks" class="w160">
+        <button class="rm" onclick="this.parentElement.remove()">✕</button>
+      </div>`).join('');
+
+      return sec('Scope','🎯',`
+        <div style="font-size:.7rem;color:var(--text3);margin-bottom:6px">Define what is In and Out of scope.</div>
+        ${tblHdr([['In/Out','w80'],['Description',''],['Remarks','w160']])}
+        <div id="ch-scope-${p.$id}">${scopeRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-scope-${p.$id}');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<select class=\\'w80\\'><option>In</option><option>Out</option></select><input placeholder=\\'Scope description\\' style=\\'flex:2\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Row</button>
+      `)
+      + sec('Equipment','🔧',`
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:.7rem;color:var(--text3)">Products and equipment for this project.</span>
+          <button class="btn btn-ghost btn-sm" style="color:var(--teal);font-size:.7rem" onclick="importEquipmentFromRequestInline('${p.$id}')">⬇ Import from Request</button>
         </div>
-        <div style="font-size:.72rem;color:var(--text2)">Last updated: ${fmtD(charter.$updatedAt||charter.$createdAt)}</div>`;
-      })():`<p style="color:var(--text3);font-size:.8rem;padding:4px 0">No charter yet. Click <strong>Start Charter →</strong> to fill in Scope, Equipment, Deliverables, Assumptions, Constraints, Risks and Project Team.</p>`}
+        ${tblHdr([['No.','w80'],['Description',''],['Qty','w80'],['Remarks','w160']])}
+        <div id="ch-equip-${p.$id}">${equipRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-equip-${p.$id}');const n=d.children.length+1;const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input value=\\''+n+'\\' class=\\'w80\\' placeholder=\\'No.\\'><input placeholder=\\'Description\\' style=\\'flex:2\\'><input placeholder=\\'Qty\\' class=\\'w80\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Row</button>
+      `)
+      + sec('Deliverables','📦',`
+        <div style="font-size:.7rem;color:var(--text3);margin-bottom:6px">Planned deliverables — saved as milestones automatically.</div>
+        ${tblHdr([['Description',''],['Planned Date','w160']])}
+        <div id="ch-del-${p.$id}">${delRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-del-${p.$id}');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Deliverable description\\' style=\\'flex:2\\'><input type=\\'date\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Deliverable</button>
+      `)
+      + sec('Assumptions','💡',`
+        <div style="font-size:.7rem;color:var(--text3);margin-bottom:6px">Assumptions, dependencies and validation methods.</div>
+        ${tblHdr([['Assumption',''],['Dependency','w160'],['Validation Method','w160']])}
+        <div id="ch-ass-${p.$id}">${assRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-ass-${p.$id}');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Assumption\\' style=\\'flex:2\\'><input placeholder=\\'Dependency\\' class=\\'w160\\'><input placeholder=\\'Validation Method\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Assumption</button>
+      `)
+      + sec('Constraints','🔒',`
+        <div style="font-size:.7rem;color:var(--text3);margin-bottom:6px">Project constraints — pre-filled with standard PMP types.</div>
+        ${tblHdr([['Type','w120'],['Description',''],['Impact','w160']])}
+        <div id="ch-con-${p.$id}">${conRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-con-${p.$id}');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Type\\' class=\\'w120\\' style=\\'font-weight:600\\'><input placeholder=\\'Description\\' style=\\'flex:2\\'><input placeholder=\\'Impact\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Constraint</button>
+      `)
+      + sec('Risks & Mitigation','⚠️',`
+        <div style="font-size:.7rem;color:var(--text3);margin-bottom:6px">Charter risks — auto-populated into the Risk Register on save.</div>
+        ${tblHdr([['Risk Description',''],['Type','w120'],['Level','w80'],['Mitigation Plan','w160']])}
+        <div id="ch-risk-${p.$id}">${rskRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-risk-${p.$id}');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Risk description\\' style=\\'flex:2\\'><select class=\\'w120\\'><option>Technical Risk</option><option>Schedule Risk</option><option>User Adoption Risk</option><option>Resource Risk</option><option>Regulatory Risk</option></select><select class=\\'w80\\'><option value=\\'low\\'>Low</option><option value=\\'medium\\' selected>Medium</option><option value=\\'high\\'>High</option><option value=\\'critical\\'>Critical</option></select><input placeholder=\\'Mitigation plan\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div);})()">+ Add Risk</button>
+      `)
+      + sec('Project Team','👥',`
+        <div style="font-size:.7rem;color:var(--text3);margin-bottom:6px">Team — PM name updates the project record on save.</div>
+        ${tblHdr([['Position','w160'],['Full Name',''],['Remarks','w160']])}
+        <div id="ch-team-${p.$id}">${teamRows}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="(()=>{const d=document.getElementById('ch-team-${p.$id}');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Position\\' class=\\'w160\\'><input placeholder=\\'Full Name\\' style=\\'flex:2\\'><input placeholder=\\'Remarks\\' class=\\'w160\\'>';d.appendChild(div);})()">+ Add Member</button>
+      `);
+    })()}
+
+    ${canE?`<div style="padding:13px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:#FAFBFC;border-radius:0 0 8px 8px">
+      <button class="btn btn-primary" onclick="saveCharterInline('${p.$id}','${charter?charter.$id:''}')">💾 Save Charter</button>
+      ${charter&&charter.status==='draft'?`<button class="btn btn-warning" onclick="saveCharterInline('${p.$id}','${charter.$id}',true)">Submit for Approval</button>`:''}
+      <span style="font-size:.72rem;color:var(--text3);align-self:center">Changes are not saved until you click Save Charter</span>
+    </div>`:''}
     </div>
   </div>
 
@@ -2186,10 +2308,44 @@ async function removeInitArtCard(artId, pid){
   }catch(e){toast('Error: '+e.message,'error');}
 }
 
-function editInitArtCard(artId, pid){
-  // Re-render tab to get fresh data with edit mode
-  // For simplicity open in existing art form
-  openPlanArtFormById(pid, null, artId);
+async function editInitArtCard(artId, pid){
+  try{
+    const art=await getDoc('artefacts',artId);
+    om(`Edit: ${esc(art.title)}`,`
+    <div class="fgrid" style="gap:10px">
+      <div class="fg"><label>Type</label>
+        <select id="eiac-type" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">
+          ${['benefits_management_plan','stakeholder_register','assumption_log','project_brief','feasibility_study','lessons_learned','scope_statement','requirements_register','other'].map(t=>`<option value="${t}" ${art.artefact_type===t?'selected':''}>${t.replace(/_/g,' ').replace(/\\b\\w/g,l=>l.toUpperCase())}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg"><label>Title</label>
+        <input id="eiac-title" value="${esc(art.title)}" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">
+      </div>
+      <div class="fg s2"><label>Version</label>
+        <input id="eiac-ver" value="${esc(art.version||'1.0')}" style="width:80px;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">
+      </div>
+      <div class="fg s2"><label>Description / Content</label>
+        <textarea id="eiac-desc" rows="6" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical">${esc(art.description||'')}</textarea>
+      </div>
+    </div>`,
+    `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+     <button class="btn btn-primary" onclick="updateInitArtCard('${artId}','${pid}')">Save Changes</button>`,
+    {sub:art.artefact_type.replace(/_/g,' ')});
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function updateInitArtCard(artId, pid){
+  const type  = document.getElementById('eiac-type')?.value||'other';
+  const title = document.getElementById('eiac-title')?.value?.trim()||'';
+  const desc  = document.getElementById('eiac-desc')?.value?.trim()||'';
+  const ver   = document.getElementById('eiac-ver')?.value?.trim()||'1.0';
+  if(!title){toast('Title is required','error');return;}
+  try{
+    await updateDoc('artefacts',artId,{artefact_type:type,title,description:desc,version:ver});
+    toast('Artefact updated!','success');
+    cm();
+    if(S.proj) renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
 }
 
 function checkEmptyArts(pid){
@@ -2275,6 +2431,114 @@ function openCharterFromInit(pid, jsonStr){
   try{art=jsonStr&&jsonStr!=='null'?JSON.parse(jsonStr):null;}catch{}
   openCharterModal(pid, art?art.$id:'', art);
 }
+
+// Save charter from inline page form (reads table rows by project-scoped IDs)
+async function saveCharterInline(pid, artId, submit=false){
+  const getRows=(id,fields)=>{
+    const rows=[];
+    document.querySelectorAll(`#${id} .dyn-row`).forEach(row=>{
+      const inp=row.querySelectorAll('input,select');
+      const obj={};fields.forEach((f,j)=>{obj[f]=inp[j]?.value?.trim()||'';});
+      if(Object.values(obj).some(v=>v)) rows.push(obj);
+    });
+    return rows;
+  };
+  const suffix=`-${pid}`;
+  const scope        = getRows(`ch-scope${suffix}`,   ['inout','description','remarks']);
+  const equipment    = getRows(`ch-equip${suffix}`,   ['no','description','qty','remarks']);
+  const deliverables = getRows(`ch-del${suffix}`,     ['description','planned_date']);
+  const assumptions  = getRows(`ch-ass${suffix}`,     ['description','dependency','validation']);
+  const constraints  = getRows(`ch-con${suffix}`,     ['type','description','impact']);
+  const risks        = getRows(`ch-risk${suffix}`,    ['risk','type','level','mitigation']);
+  const team         = getRows(`ch-team${suffix}`,    ['position','name','remarks']);
+
+  const charterData  = JSON.stringify({scope,equipment,deliverables,assumptions,constraints,risks,team});
+  try{
+    if(artId){
+      await updateDoc('artefacts',artId,{description:charterData,status:submit?'in_review':'draft'});
+    } else {
+      const newArt=await createDoc('artefacts',{
+        project_id:pid, artefact_type:'project_charter', title:'Project Charter',
+        description:charterData, version:'1.0',
+        status:submit?'in_review':'draft', process_group:'initiation',
+        owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+      });
+      artId=newArt.$id;
+    }
+
+    // Auto-populate planning artefacts (same logic as saveCharter modal)
+    const upsertArt=async(type,title,description)=>{
+      const ex=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type',type)]);
+      if(ex.documents.length) await updateDoc('artefacts',ex.documents[0].$id,{description,title});
+      else await createDoc('artefacts',{project_id:pid,artefact_type:type,title,description,version:'1.0',status:'draft',process_group:'planning',owner_id:S.profile.$id,owner_name:S.profile.full_name,created_by:S.profile.$id});
+    };
+
+    // Deliverables → milestones
+    const exMs=await listDocs('milestones',[Query.equal('project_id',pid)]);
+    for(const m of exMs.documents.filter(m=>m.description==='charter_deliverable'))
+      try{await db.deleteDocument(DB_ID,'milestones',m.$id);}catch{}
+    for(const d of deliverables){
+      if(!d.description) continue;
+      await createDoc('milestones',{project_id:pid,name:d.description,phase:'Delivery',planned_date:d.planned_date||'',status:'upcoming',is_stage_gate:false,description:'charter_deliverable'});
+    }
+    if(deliverables.length) await upsertArt('wbs_dictionary','WBS Dictionary',JSON.stringify({deliverables}));
+
+    // Assumptions → requirements_register
+    if(assumptions.length) await upsertArt('requirements_register','Requirements Register',JSON.stringify({assumptions}));
+
+    // Constraints → project_management_plan
+    if(constraints.some(c=>c.description)) await upsertArt('project_management_plan','Project Management Plan',JSON.stringify({constraints}));
+
+    // Risks → risk register
+    const exRk=await listDocs('risks',[Query.equal('project_id',pid)]);
+    for(const r of exRk.documents.filter(r=>r.category==='charter_import'))
+      try{await db.deleteDocument(DB_ID,'risks',r.$id);}catch{}
+    const scoreMap={low:4,medium:9,high:16,critical:20};
+    for(const r of risks){
+      if(!r.risk) continue;
+      const sc=scoreMap[r.level]||9;
+      await createDoc('risks',{project_id:pid,risk_id:genId('RSK'),title:r.risk,description:r.risk,category:'charter_import',probability:'medium',impact:r.level||'medium',risk_score:sc,risk_rating:sc>=15?'Critical':sc>=9?'High':'Medium',status:'identified',response_strategy:'mitigate',mitigation_strategy:r.mitigation||'',raised_by:S.profile.$id,owner_id:S.profile.$id,owner_name:S.profile.full_name,is_healthcare_regulatory:false});
+    }
+    if(risks.some(r=>r.risk)) await upsertArt('risk_management_plan','Risk Management Plan',JSON.stringify({risks}));
+
+    // Team → resource plan + update PM name
+    if(team.some(t=>t.name)){
+      await upsertArt('resource_plan','Resource Management Plan',JSON.stringify({team}));
+      await upsertArt('raci_matrix','RACI Matrix',JSON.stringify({team}));
+      const pm=team.find(t=>t.position?.toLowerCase().includes('project manager'));
+      if(pm?.name) await updateDoc('projects',pid,{project_manager_name:pm.name});
+    }
+
+    await auditLog('CHARTER_SAVED','artefact',artId,'Project Charter saved inline',pid);
+    toast(submit?'Charter submitted for approval!':'Charter saved! Planning artefacts updated.','success',4000);
+    if(S.proj) renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error saving charter: '+e.message,'error');}
+}
+
+// Import equipment from request directly into inline charter table
+async function importEquipmentFromRequestInline(pid){
+  try{
+    const reqRes=await listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')]);
+    const linkedReq=reqRes.documents.find(r=>r.title===S.proj?.name)||(reqRes.documents.length?reqRes.documents[0]:null);
+    if(!linkedReq){toast('No approved request found','info');return;}
+    const v12res=await listDocs('request_v12_data',[Query.equal('request_id',linkedReq.$id)]);
+    const v12=v12res.documents[0]||null;
+    if(!v12?.products_json){toast('No products in request','info');return;}
+    const products=JSON.parse(v12.products_json||'[]');
+    if(!products.length){toast('No products to import','info');return;}
+    const container=document.getElementById(`ch-equip-${pid}`);
+    if(!container) return;
+    container.innerHTML='';
+    products.forEach((prod,i)=>{
+      const div=document.createElement('div');div.className='dyn-row';
+      div.innerHTML=`<input value="${i+1}" class="w80" placeholder="No."><input value="${prod.description||''}" placeholder="Description" style="flex:2"><input value="${prod.qty||''}" class="w80" placeholder="Qty"><input value="${prod.remarks||''}" class="w160" placeholder="Remarks"><button class="rm" onclick="this.parentElement.remove()">✕</button>`;
+      container.appendChild(div);
+    });
+    toast(`${products.length} items imported — click Save Charter to persist`,'success');
+  }catch(e){toast('Import error: '+e.message,'error');}
+}
+
+
 
 
 async function tPlan(p,el){
@@ -3574,27 +3838,8 @@ async function saveCharter(pid, artId, submit=false){
       }
     };
 
-    // ── 2. SCOPE → scope_statement artefact ──────────────────────────────
-    if(scope.length){
-      const inScope =scope.filter(s=>s.inout==='In').map(s=>`• ${s.description}${s.remarks?' — '+s.remarks:''}`).join('\n');
-      const outScope=scope.filter(s=>s.inout==='Out').map(s=>`• ${s.description}${s.remarks?' — '+s.remarks:''}`).join('\n');
-      await upsertArtefact('scope_statement','Scope Statement',
-        JSON.stringify({in_scope:inScope,out_scope:outScope,scope_rows:scope}));
-    }
-
-    // ── 3. EQUIPMENT → stored in scope_statement as equipment_rows ────────
-    if(equipment.length){
-      const existing=await listDocs('artefacts',[Query.equal('project_id',pid),Query.equal('artefact_type','scope_statement')]);
-      if(existing.documents.length){
-        try{
-          const d=JSON.parse(existing.documents[0].description||'{}');
-          d.equipment_rows=equipment; // [{no, description, qty, remarks}]
-          await updateDoc('artefacts',existing.documents[0].$id,{description:JSON.stringify(d)});
-        }catch{}
-      } else {
-        await upsertArtefact('scope_statement','Scope Statement',JSON.stringify({scope_rows:scope,equipment_rows:equipment}));
-      }
-    }
+    // Scope and Equipment are stored in the charter artefact only (not auto-created as scope_statement)
+    // scope_statement can be manually created in Planning if needed
 
     // ── 4. DELIVERABLES → milestones (clear old charter-sourced, re-seed) ─
     const existingMs=await listDocs('milestones',[Query.equal('project_id',pid)]);
