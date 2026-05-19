@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0C2340">
 <title>HealthPM360 — Project Management Platform</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%230C2340'/><path fill='none' stroke='%230B8A82' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M12 3.5a8.5 8.5 0 00-5.879 2.357A8.5 8.5 0 003.5 8c0 4.142 2.784 7.612 6.5 8.69 3.716-1.078 6.5-4.548 6.5-8.69a8.5 8.5 0 00-2.121-5.643A8.5 8.5 0 0012 3.5z'/><polyline fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' points='9 11 11.5 13.5 15.5 9'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -218,6 +221,98 @@ tr:hover td{background:#FAFBFD}
 .dv{font-size:.76rem;color:var(--text);flex:1}
 .dsec{margin-bottom:16px}
 .dsec h4{font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+/* ═══════════════════════════════════════════════════════
+   MOBILE / iOS RESPONSIVE STYLES
+   ═══════════════════════════════════════════════════════ */
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px)}
+button,a,select,input{touch-action:manipulation}
+#mc,.tw,.mbody{-webkit-overflow-scrolling:touch}
+@media(max-width:768px){
+  html{font-size:15px}
+  #ls{align-items:flex-start;padding-top:calc(60px + var(--safe-top))}
+  .lc{width:100%!important;max-width:100%;border-radius:0;min-height:100vh;padding:28px 22px calc(30px + var(--safe-bottom));box-shadow:none}
+  #app.on{flex-direction:column}
+  #sb{position:fixed;top:0;left:0;height:100%;width:260px!important;min-width:260px!important;z-index:10;transform:translateX(-100%);transition:transform .25s ease;padding-top:var(--safe-top)}
+  #sb.open{transform:translateX(0)}
+  #mob-menu{display:flex!important}
+  #tb{padding:0 14px;padding-top:var(--safe-top);height:calc(var(--th) + var(--safe-top));position:sticky;top:0;z-index:5;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+  .tt{font-size:.88rem}
+  .ts{display:none}
+  #mc{padding:12px;padding-bottom:calc(16px + var(--safe-bottom))}
+  #body{overflow:hidden;display:flex;flex-direction:column}
+  .kg{grid-template-columns:1fr 1fr!important;gap:8px!important}
+  .kv{font-size:1.5rem!important}
+  .g2,.g3{grid-template-columns:1fr!important;gap:10px!important}
+  .fgrid{grid-template-columns:1fr!important}
+  .fgrid .s2{grid-column:1!important}
+  .ag{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important}
+  .card{border-radius:10px}
+  .ch{padding:11px 13px;flex-wrap:wrap;gap:7px}
+  .ct{font-size:.82rem}
+  .cb{padding:12px}
+  #pgrid{grid-template-columns:1fr!important}
+  .pc{padding:13px}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+  table{min-width:480px}
+  th,td{padding:7px 8px;white-space:nowrap}
+  th{font-size:.61rem}
+  td{font-size:.75rem}
+  .te{padding:20px}
+  .btn{font-size:.75rem;padding:8px 12px;min-height:38px}
+  .btn-sm{padding:7px 10px;font-size:.72rem;min-height:34px}
+  .btn-full{min-height:44px;font-size:.85rem}
+  #ta{gap:4px;flex-wrap:wrap}
+  #ta .btn{font-size:.7rem;padding:6px 9px}
+  .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:1px;flex-wrap:nowrap}
+  .tabi{white-space:nowrap;padding:7px 10px;font-size:.72rem}
+  .ctabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ctab{padding:6px 10px;font-size:.72rem}
+  #mo{align-items:flex-end}
+  .modal,.modal.lg{width:100%!important;max-width:100%!important;max-height:93vh!important;border-radius:18px 18px 0 0!important;margin:0}
+  .mh{padding:14px 16px}
+  .mh h3{font-size:.9rem}
+  .mbody{padding:14px 16px}
+  .mfoot{padding:12px 16px;padding-bottom:calc(12px + var(--safe-bottom));flex-wrap:wrap;gap:8px}
+  .mfoot .btn{flex:1;justify-content:center;min-height:42px}
+  .modal::before{content:'';display:block;width:36px;height:4px;background:#D1D5DB;border-radius:2px;margin:8px auto -4px;flex-shrink:0}
+  .fg input,.fg select,.fg textarea{font-size:16px!important;padding:10px 12px}
+  .fg label{font-size:.78rem}
+  .fchk label{font-size:.82rem}
+  .fchk input[type=checkbox]{width:18px;height:18px}
+  .ie-val input,.ie-val select{font-size:15px!important}
+  .dyn-row{flex-wrap:wrap;gap:5px}
+  .dyn-row .w80,.dyn-row .w120,.dyn-row .w160{flex:1!important;min-width:70px}
+  .badge{font-size:.6rem}
+  .sbf{padding:9px 9px calc(9px + var(--safe-bottom))}
+  .ie-row{flex-wrap:wrap}
+  .ie-lbl{width:100%!important;font-size:.68rem;margin-bottom:1px}
+  .ie-val{width:100%}
+  #tc{right:10px;left:10px;bottom:calc(14px + var(--safe-bottom))}
+  .toast{min-width:0;width:100%}
+  .dl{width:110px!important;font-size:.68rem}
+  .kc{padding:11px 12px}
+  .auth-tab{font-size:.8rem;padding:9px}
+  #panel-up .fgrid{grid-template-columns:1fr!important}
+  .acard{min-height:auto!important}
+}
+@media(max-width:380px){
+  html{font-size:14px}
+  .kv{font-size:1.3rem!important}
+  #mc{padding:9px}
+}
+@media(max-width:896px) and (orientation:landscape) and (max-height:500px){
+  #tb{height:calc(44px + var(--safe-top));padding-top:var(--safe-top)}
+  #mc{padding:8px}
+  .modal,.modal.lg{max-height:96vh!important}
+  .lc{padding-top:16px}
+  #ls{align-items:flex-start;padding-top:calc(10px + var(--safe-top))}
+}
+@media(min-width:769px) and (max-width:1024px){
+  :root{--sw:200px}
+  .g3{grid-template-columns:1fr 1fr!important}
+  .kg{grid-template-columns:repeat(2,1fr)!important}
+  #pgrid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))!important}
+}
 </style>
 </head>
 <body>
@@ -305,12 +400,17 @@ tr:hover td{background:#FAFBFD}
   </nav>
   <div id="body">
     <div id="tb">
-      <div style="flex:1"><span class="tt" id="tt">Dashboard</span><span class="ts" id="ts"></span></div>
+      <button id="mob-menu" onclick="toggleSidebar()" style="display:none;background:none;border:none;cursor:pointer;padding:6px;margin-right:6px;color:var(--text);border-radius:6px" aria-label="Menu">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+      <div style="flex:1;min-width:0"><span class="tt" id="tt">Dashboard</span><span class="ts" id="ts"></span></div>
       <div style="display:flex;align-items:center;gap:6px" id="ta"></div>
     </div>
     <div id="mc"><div class="loading"><div class="spin"></div> Loading…</div></div>
   </div>
 </div>
+<!-- Mobile sidebar overlay -->
+<div id="sb-overlay" onclick="toggleSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9;backdrop-filter:blur(2px)"></div>
 
 <div id="mo" onclick="cm(event)">
   <div class="modal" id="mb" onclick="event.stopPropagation()">
@@ -337,6 +437,142 @@ const account = new Account(client);
 const db      = new Databases(client);
 
 const S = { user:null, profile:null, view:'dashboard', proj:null, ptab:'overview', roles:[] };
+
+// PMP_ARTEFACTS constant — referenced by tPlan, openPlanArtForm, viewPlanArt, savePlanArt
+const PMP_ARTEFACTS = [
+  { type:'project_management_plan',    label:'Project Management Plan',    group:'Integration', icon:'📋',
+    desc:'Master document integrating all subsidiary plans. Describes how the project will be executed, monitored, and closed.',
+    fields:[
+      {id:'pmp_purpose',       label:'Purpose & Objectives',            type:'textarea', rows:3},
+      {id:'pmp_approach',      label:'Project Approach / Methodology',  type:'textarea', rows:3},
+      {id:'pmp_scope_summary', label:'High-Level Scope Summary',        type:'textarea', rows:2},
+      {id:'pmp_baselines',     label:'Performance Baselines (Scope/Schedule/Cost)', type:'textarea', rows:2},
+      {id:'pmp_change_ctrl',   label:'Change Control Process',          type:'textarea', rows:2},
+      {id:'pmp_approval',      label:'Approval Requirements',           type:'text'},
+      {id:'pmp_pm_auth',       label:'Project Manager Authority Level', type:'text'},
+    ]},
+  { type:'scope_statement',           label:'Scope Statement',            group:'Scope', icon:'🎯',
+    desc:'Detailed description of project scope, deliverables, exclusions, assumptions, and acceptance criteria.',
+    fields:[
+      {id:'ss_description',    label:'Project Scope Description',       type:'textarea', rows:4},
+      {id:'ss_deliverables',   label:'Major Deliverables',              type:'textarea', rows:3},
+      {id:'ss_acceptance',     label:'Acceptance Criteria',             type:'textarea', rows:3},
+      {id:'ss_exclusions',     label:'Project Exclusions',              type:'textarea', rows:2},
+      {id:'ss_assumptions',    label:'Key Assumptions',                 type:'textarea', rows:2},
+      {id:'ss_constraints',    label:'Key Constraints',                 type:'textarea', rows:2},
+    ]},
+  { type:'wbs',                        label:'Work Breakdown Structure',   group:'Scope', icon:'🌳',
+    desc:'Hierarchical decomposition of total scope of work into manageable work packages.',
+    fields:[
+      {id:'wbs_summary',       label:'WBS Summary / Overview',          type:'textarea', rows:3},
+      {id:'wbs_methodology',   label:'Decomposition Methodology',       type:'text'},
+      {id:'wbs_work_packages', label:'Work Packages (one per line)',     type:'textarea', rows:6, placeholder:'1.0 Project Management\n  1.1 Project Planning\n  1.2 Status Reporting\n2.0 System Design'},
+      {id:'wbs_control_accts', label:'Control Account Assignments',     type:'textarea', rows:3},
+    ]},
+  { type:'schedule_baseline',         label:'Schedule Baseline',          group:'Schedule', icon:'📅',
+    desc:'Approved project schedule used as basis for measuring schedule performance.',
+    fields:[
+      {id:'sb_start_date',     label:'Project Start Date',              type:'date'},
+      {id:'sb_end_date',       label:'Project End Date',                type:'date'},
+      {id:'sb_duration',       label:'Total Duration (days)',           type:'number'},
+      {id:'sb_methodology',    label:'Scheduling Methodology',          type:'text', placeholder:'Critical Path Method (CPM)'},
+      {id:'sb_critical_path',  label:'Critical Path Activities',        type:'textarea', rows:3},
+      {id:'sb_float',          label:'Total Float / Slack Available',   type:'text'},
+      {id:'sb_milestones',     label:'Key Schedule Milestones',         type:'textarea', rows:3},
+      {id:'sb_assumptions',    label:'Scheduling Assumptions',          type:'textarea', rows:2},
+    ]},
+  { type:'cost_baseline',             label:'Cost Baseline',              group:'Cost', icon:'💰',
+    desc:'Approved budget used as basis for measuring cost performance, excluding management reserves.',
+    fields:[
+      {id:'cb_total_budget',   label:'Total Approved Budget (S$)',      type:'number'},
+      {id:'cb_direct_costs',   label:'Direct Costs (S$)',               type:'number'},
+      {id:'cb_indirect_costs', label:'Indirect / Overhead Costs (S$)', type:'number'},
+      {id:'cb_contingency',    label:'Contingency Reserve (S$)',        type:'number'},
+      {id:'cb_management_res', label:'Management Reserve (S$)',         type:'number'},
+      {id:'cb_cost_breakdown', label:'Cost Breakdown by Phase/WBS',     type:'textarea', rows:4},
+      {id:'cb_assumptions',    label:'Cost Estimating Assumptions',     type:'textarea', rows:2},
+      {id:'cb_basis',          label:'Basis of Estimate',               type:'text', placeholder:'Bottom-up, analogous, parametric'},
+    ]},
+  { type:'quality_plan',              label:'Quality Management Plan',    group:'Quality', icon:'✅',
+    desc:'Describes how quality policies will be implemented and quality objectives achieved.',
+    fields:[
+      {id:'qp_policy',         label:'Quality Policy',                  type:'textarea', rows:2},
+      {id:'qp_objectives',     label:'Quality Objectives',              type:'textarea', rows:2},
+      {id:'qp_standards',      label:'Quality Standards & Regulations', type:'textarea', rows:2},
+      {id:'qp_qa_activities',  label:'Quality Assurance Activities',    type:'textarea', rows:3},
+      {id:'qp_qc_activities',  label:'Quality Control Activities',      type:'textarea', rows:3},
+      {id:'qp_metrics',        label:'Quality Metrics & Acceptance Criteria', type:'textarea', rows:3},
+      {id:'qp_tools',          label:'Quality Tools & Techniques',      type:'text'},
+      {id:'qp_roles',          label:'Quality Roles & Responsibilities',type:'textarea', rows:2},
+    ]},
+  { type:'resource_plan',             label:'Resource Management Plan',   group:'Resource', icon:'👥',
+    desc:'Describes how project resources will be identified, acquired, managed, and released.',
+    fields:[
+      {id:'rp_approach',       label:'Resource Management Approach',    type:'textarea', rows:2},
+      {id:'rp_org_chart',      label:'Project Organisation Structure',  type:'textarea', rows:3, placeholder:'Describe hierarchy or paste org chart text'},
+      {id:'rp_roles',          label:'Roles & Responsibilities',        type:'textarea', rows:4, placeholder:'PM: ...\nTech Lead: ...\nEngineer: ...'},
+      {id:'rp_acquisition',    label:'Resource Acquisition Strategy',   type:'textarea', rows:2},
+      {id:'rp_training',       label:'Training Requirements',           type:'textarea', rows:2},
+      {id:'rp_recognition',    label:'Team Recognition & Rewards',      type:'text'},
+      {id:'rp_release',        label:'Resource Release Criteria',       type:'textarea', rows:2},
+    ]},
+  { type:'communication_plan',        label:'Communications Management Plan', group:'Communication', icon:'📢',
+    desc:'Describes how project communications will be planned, structured, and monitored.',
+    fields:[
+      {id:'cp_approach',       label:'Communication Approach',          type:'textarea', rows:2},
+      {id:'cp_stakeholders',   label:'Stakeholder Communication Matrix',type:'textarea', rows:5, placeholder:'Stakeholder | Info Needed | Format | Frequency | Owner\nSponsor | Status | Report | Weekly | PM'},
+      {id:'cp_methods',        label:'Communication Methods & Tools',   type:'text', placeholder:'Email, Teams, Monthly Report, Dashboard'},
+      {id:'cp_meetings',       label:'Meeting Cadence',                 type:'textarea', rows:3, placeholder:'Weekly PM standup\nMonthly Steering Committee\nQuarterly Sponsor review'},
+      {id:'cp_escalation',     label:'Escalation Path',                 type:'textarea', rows:2},
+      {id:'cp_constraints',    label:'Communication Constraints',       type:'textarea', rows:2},
+    ]},
+  { type:'risk_management_plan',      label:'Risk Management Plan',       group:'Risk', icon:'⚠️',
+    desc:'Describes how risk management will be structured and performed throughout the project.',
+    fields:[
+      {id:'rmp_approach',      label:'Risk Management Approach',        type:'textarea', rows:2},
+      {id:'rmp_methodology',   label:'Methodology',                     type:'text', placeholder:'Risk register, probability/impact matrix'},
+      {id:'rmp_roles',         label:'Risk Roles & Responsibilities',   type:'textarea', rows:2},
+      {id:'rmp_categories',    label:'Risk Categories (RBS)',            type:'textarea', rows:3, placeholder:'Technical\nSchedule\nCost\nResource\nRegulatory\nVendor'},
+      {id:'rmp_probability',   label:'Probability Definitions',         type:'textarea', rows:3},
+      {id:'rmp_impact',        label:'Impact Definitions',              type:'textarea', rows:3},
+      {id:'rmp_threshold',     label:'Risk Threshold & Escalation',     type:'textarea', rows:2},
+      {id:'rmp_reporting',     label:'Risk Reporting Frequency',        type:'text', placeholder:'Weekly in status report'},
+    ]},
+  { type:'procurement_plan',          label:'Procurement Management Plan', group:'Procurement', icon:'🛒',
+    desc:'Describes how goods and services will be acquired from outside the project organisation.',
+    fields:[
+      {id:'pp_approach',       label:'Procurement Approach',            type:'textarea', rows:2},
+      {id:'pp_contracts',      label:'Contract Types to be Used',       type:'text', placeholder:'Fixed Price, Time & Material, Milestone-Based'},
+      {id:'pp_vendors',        label:'Key Vendors / Suppliers',         type:'textarea', rows:3},
+      {id:'pp_selection',      label:'Vendor Selection Criteria',       type:'textarea', rows:3},
+      {id:'pp_constraints',    label:'Procurement Constraints',         type:'textarea', rows:2},
+      {id:'pp_risks',          label:'Procurement Risks',               type:'textarea', rows:2},
+      {id:'pp_metrics',        label:'Vendor Performance Metrics',      type:'textarea', rows:2},
+    ]},
+  { type:'change_management_plan',    label:'Change Management Plan',     group:'Integration', icon:'🔄',
+    desc:'Describes how change control will be managed throughout the project lifecycle.',
+    fields:[
+      {id:'cmp_process',       label:'Change Request Process',          type:'textarea', rows:3, placeholder:'1. PM raises CR\n2. PMO reviews impact\n3. Sponsor approves/rejects\n4. PM implements if approved'},
+      {id:'cmp_threshold',     label:'Change Authority Thresholds',     type:'textarea', rows:2},
+      {id:'cmp_roles',         label:'Change Control Board (CCB) Members', type:'text'},
+      {id:'cmp_tools',         label:'Tools & Documentation',           type:'text', placeholder:'Change Request Form, Change Log'},
+      {id:'cmp_baseline',      label:'Baseline Update Process',         type:'textarea', rows:2},
+    ]},
+  { type:'requirements_register',     label:'Requirements Register',      group:'Scope', icon:'📝',
+    desc:'Documents all requirements with traceability to deliverables and test cases.',
+    fields:[
+      {id:'rr_approach',       label:'Requirements Collection Approach', type:'textarea', rows:2},
+      {id:'rr_requirements',   label:'Requirements (ID | Description | Priority | Source)', type:'textarea', rows:8, placeholder:'REQ-001 | System shall support 100 concurrent users | High | Client\nREQ-002 | Response time < 2 seconds | High | SLA\nREQ-003 | PDPA compliance | Critical | Regulatory'},
+      {id:'rr_acceptance',     label:'Acceptance Criteria Overview',    type:'textarea', rows:3},
+      {id:'rr_traceability',   label:'Traceability Approach',           type:'text', placeholder:'Requirements traced to WBS, test cases, and deliverables'},
+    ]},
+  { type:'raci_matrix',               label:'RACI Matrix',                group:'Resource', icon:'🗂️',
+    desc:'Defines Responsible, Accountable, Consulted, and Informed roles for project activities.',
+    fields:[
+      {id:'raci_intro',        label:'Activity / Role Matrix',          type:'textarea', rows:10, placeholder:'Activity | PM | Sponsor | Tech Lead | PMO | QA\nProject Planning | R | A | C | I | I\nDesign Review | R | I | A | C | C\nUAT Sign-off | C | A | I | C | R\n\nR=Responsible A=Accountable C=Consulted I=Informed'},
+      {id:'raci_notes',        label:'Notes',                           type:'textarea', rows:2},
+    ]},
+];
 const genId = pre => `${pre}-${new Date().getFullYear()}-${String(Date.now()).slice(-5)}`;
 
 const $    = id => document.getElementById(id);
@@ -515,6 +751,7 @@ function setupSidebar(){
 
 async function nav(view,params={}){
   S.view=view;
+  closeSidebar(); // close drawer on mobile
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
   const el=document.querySelector(`.nav[data-v="${view}"]`);if(el)el.classList.add('active');
   $('ta').innerHTML='';$('ts').textContent='';
@@ -1775,7 +2012,7 @@ async function importEquipmentFromRequest(pid){
     products.forEach(prod=>{
       if(!prod.description) return;
       const div=document.createElement('div');div.className='dyn-row';
-      div.innerHTML=`<select class="w80"><option>In</option><option>Out</option></select><input value="${prod.description||''}" style="flex:2"><input value="${prod.remarks||''}" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button>`;
+      div.innerHTML=`<select class="w80"><option>In</option><option>Out</option></select><input value="${prod.description||''}" style="flex:2"><input value="${prod.qty||''}" class="w80" placeholder="Qty"><input value="${prod.remarks||''}" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button>`;
       container.appendChild(div);
     });
     toast(`${products.length} items imported from request products`,'success');
@@ -1797,34 +2034,72 @@ async function tPlan(p,el){
     listDocs('milestones',[Query.equal('project_id',p.$id),Query.orderAsc('planned_date')]),
     listDocs('vendors',[Query.equal('project_id',p.$id)])
   ]);
-  const planTypes=['project_management_plan','scope_statement','wbs','wbs_dictionary','schedule_baseline','cost_baseline','quality_plan','resource_plan','raci_matrix','communication_plan','risk_management_plan','procurement_plan','change_management_plan','requirements_register','traceability_matrix'];
+
+  // Uses global PMP_ARTEFACTS constant defined at module scope
+  const _PA = PMP_ARTEFACTS; // alias for template strings below
+
+  const getArt=(type)=>ar.documents.find(a=>a.artefact_type===type);
+  const safeParse=(s,d={})=>{try{return JSON.parse(s||'{}');}catch{return d;}};
+
   el.innerHTML=`
-  <div class="card" style="margin-bottom:11px">
-    <div class="ch"><span class="ct">Planning Artefacts (PMP &amp; Subsidiary Plans)</span>
-      <div style="display:flex;gap:6px;align-items:center">
-        ${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openArtModal('${p.$id}','planning')">+ Add</button>`:''}
-        ${canDo(['pmo'])&&!p.baseline_locked?`<button class="btn btn-success btn-sm" onclick="lockBase('${p.$id}')">🔒 Lock Baseline</button>`:''}
-        ${p.baseline_locked?`<span class="badge bg-green" style="font-size:.68rem">✓ Baseline Locked</span>`:''}
-      </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
+    <div>
+      <p style="font-size:.8rem;color:var(--text2)">PMP-standard planning artefacts. Click <strong>+ Add</strong> on any artefact to fill in the structured form.</p>
+      ${S.proj?.baseline_locked?`<span class="badge bg-green" style="font-size:.72rem">✓ Baseline Locked</span>`:''}
     </div>
-    <div class="cb" style="padding:9px"><div class="ag">
-      ${planTypes.map(t=>{const f=ar.documents.find(a=>a.artefact_type===t);return `<div class="acard" onclick="${f?`viewArt('${f.$id}')`:`openArtModal('${p.$id}','planning','${t}')`}"><div class="at">${t.replace(/_/g,' ')}</div><div class="an" style="font-size:.74rem">${f?esc(f.title):t.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase())}</div><div class="af">${f?`<span class="av">v${f.version}</span>${badge(f.status)}`:`<span style="font-size:.66rem;color:var(--text3)">Pending</span><span class="badge bg-gray">Missing</span>`}</div></div>`;}).join('')}
-    </div></div>
+    <div style="display:flex;gap:6px">
+      ${canDo(['pmo'])&&!p.baseline_locked?`<button class="btn btn-success btn-sm" onclick="lockBase('${p.$id}')">🔒 Lock Baseline</button>`:''}
+    </div>
   </div>
-  <div class="g2" style="gap:11px;margin-bottom:11px">
+
+  <!-- GROUP SECTIONS -->
+  ${['Integration','Scope','Schedule','Cost','Quality','Resource','Communication','Risk','Procurement'].map(group=>{
+    const groupArts=PMP_ARTEFACTS.filter(a=>a.group===group);
+    return `<div class="card" style="margin-bottom:10px">
+      <div class="ch">
+        <span class="ct" style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:.65rem;background:var(--navy);color:#fff;padding:2px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em">${group}</span>
+          Knowledge Area
+        </span>
+        <span style="font-size:.72rem;color:var(--text3)">${groupArts.filter(a=>getArt(a.type)).length}/${groupArts.length} created</span>
+      </div>
+      <div class="cb" style="padding:10px">
+        <div class="ag" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">
+          ${groupArts.map(a=>{
+            const existing=getArt(a.type);
+            const data=existing?safeParse(existing.description):null;
+            return `<div class="acard" style="position:relative;min-height:90px" onclick="${existing?`viewPlanArt('${p.$id}','${a.type}','${existing.$id}')`:`openPlanArtForm('${p.$id}','${a.type}',null,null)`}">
+              <div class="at" style="display:flex;align-items:center;gap:4px"><span>${a.icon}</span><span>${a.group}</span></div>
+              <div class="an" style="font-size:.78rem;font-weight:700;margin-bottom:4px">${a.label}</div>
+              <div style="font-size:.67rem;color:var(--text2);line-height:1.4;margin-bottom:7px">${a.desc.substring(0,70)}…</div>
+              <div class="af">
+                ${existing
+                  ?`<span class="av">v${existing.version}</span>${badge(existing.status)}`
+                  :`<button class="btn btn-primary btn-sm" style="font-size:.65rem;padding:3px 8px" onclick="event.stopPropagation();openPlanArtForm('${p.$id}','${a.type}',null,null)">+ Add</button><span class="badge bg-gray">Pending</span>`}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('')}
+
+  <!-- RISK REGISTER & MILESTONES -->
+  <div class="g2" style="gap:11px;margin-bottom:10px">
     <div class="card">
-      <div class="ch"><span class="ct">Risk Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openRskModal('${p.$id}')">+ Add</button>`:''}</div>
+      <div class="ch"><span class="ct">Risk Register</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openRskModal('${p.$id}')">+ Add Risk</button>`:''}</div>
       <div class="tw"><table><thead><tr><th>ID</th><th>Risk</th><th>Score</th><th>Status</th><th>Owner</th></tr></thead><tbody>
-      ${rk.documents.map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:140px;font-weight:500">${esc(r.title)}</td><td>${rsBadge(r.risk_score)}</td><td>${badge(r.status)}</td><td style="font-size:.72rem">${esc(r.owner_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No risks</td></tr>'}
+      ${rk.documents.map(r=>`<tr><td class="mono">${esc(r.risk_id||'—')}</td><td class="trunc" style="max-width:140px;font-weight:500">${esc(r.title)}</td><td>${rsBadge(r.risk_score)}</td><td>${badge(r.status)}</td><td style="font-size:.72rem">${esc(r.owner_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No risks — save Project Charter to auto-populate</td></tr>'}
       </tbody></table></div>
     </div>
     <div class="card">
       <div class="ch"><span class="ct">Milestones &amp; Stage Gates</span>${canDo(['pmo','project_manager'])?`<button class="btn btn-primary btn-sm" onclick="openMsModal('${p.$id}')">+ Add</button>`:''}</div>
       <div class="tw"><table><thead><tr><th>Milestone</th><th>Due</th><th>Gate?</th><th>Status</th></tr></thead><tbody>
-      ${ms.documents.map(m=>`<tr><td class="trunc" style="max-width:140px;font-weight:500">${esc(m.name)}</td><td class="mono" style="font-size:.69rem">${fmtD(m.planned_date)}</td><td>${m.is_stage_gate?'<span class="badge bg-purple">Gate</span>':'—'}</td><td>${badge(m.status)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No milestones</td></tr>'}
+      ${ms.documents.map(m=>`<tr><td class="trunc" style="max-width:140px;font-weight:500">${esc(m.name)}</td><td class="mono" style="font-size:.69rem">${fmtD(m.planned_date)}</td><td>${m.is_stage_gate?'<span class="badge bg-purple">Gate</span>':'—'}</td><td>${badge(m.status)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No milestones — save Project Charter to auto-populate</td></tr>'}
       </tbody></table></div>
     </div>
   </div>
+
   <div class="card">
     <div class="ch"><span class="ct">Vendor &amp; Contract Register</span>${canDo(['pmo','project_manager','finance'])?`<button class="btn btn-primary btn-sm" onclick="openVndModal('${p.$id}')">+ Add Vendor</button>`:''}</div>
     <div class="tw"><table><thead><tr><th>Vendor</th><th>Contract</th><th>Type</th><th>Value</th><th>Status</th><th>Performance</th></tr></thead><tbody>
@@ -1832,6 +2107,105 @@ async function tPlan(p,el){
     </tbody></table></div>
   </div>`;
 }
+
+// Open planning artefact form (create or edit)
+function openPlanArtForm(pid, type, def, artId, existingData=null){
+  if(!def) def=PMP_ARTEFACTS.find(a=>a.type===type);
+  if(!def) return;
+  const data=existingData||{};
+  const formFields=def.fields.map(f=>`
+    <div class="fg" style="grid-column:1/-1">
+      <label style="font-size:.75rem;font-weight:600;color:var(--text2);margin-bottom:4px;display:block">${f.label}</label>
+      ${f.type==='textarea'
+        ?`<textarea id="${f.id}" rows="${f.rows||3}" placeholder="${esc(f.placeholder||'')}" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem;font-family:inherit;resize:vertical">${esc(data[f.id]||'')}</textarea>`
+        :f.type==='date'
+          ?`<input type="date" id="${f.id}" value="${esc(data[f.id]||'')}" style="width:200px;padding:7px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">`
+          :f.type==='number'
+            ?`<input type="number" id="${f.id}" value="${esc(data[f.id]||'')}" placeholder="0" style="width:180px;padding:7px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">`
+            :`<input type="text" id="${f.id}" value="${esc(data[f.id]||'')}" placeholder="${esc(f.placeholder||'')}" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:.8rem">`}
+    </div>`).join('');
+
+  om(`${def.icon} ${def.label}`,`
+  <div style="background:var(--blue-light);border-left:3px solid var(--blue);padding:9px 12px;border-radius:5px;margin-bottom:14px;font-size:.76rem;color:var(--blue-h);line-height:1.5">
+    <strong>${def.group} Knowledge Area</strong><br>${def.desc}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr;gap:10px">${formFields}</div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-primary" onclick="savePlanArt('${pid}','${type}','${artId||''}')">Save</button>
+   ${artId?`<button class="btn btn-warning" onclick="savePlanArt('${pid}','${type}','${artId}',true)">Save &amp; Submit for Approval</button>`:''}`,
+  {lg:true, sub:`PMP Standard Artefact · ${def.group} Knowledge Area`});
+}
+
+// View a planning artefact (read + option to edit)
+async function viewPlanArt(pid, type, artId, def){
+  if(!def) def=PMP_ARTEFACTS.find(a=>a.type===type);
+  if(!def){viewArt(artId);return;}
+  const art=await getDoc('artefacts',artId);
+  const data=art.description?JSON.parse(art.description||'{}'):{};
+  const canEdit=canDo(['pmo','project_manager']);
+
+  const rows=def.fields.map(f=>`
+    <div style="margin-bottom:12px">
+      <div style="font-size:.68rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">${f.label}</div>
+      <div style="font-size:.8rem;color:var(--text);line-height:1.6;white-space:pre-wrap;background:#F9FAFB;border-radius:5px;padding:8px 10px;min-height:28px">${esc(data[f.id]||'—')}</div>
+    </div>`).join('');
+
+  om(`${def.icon} ${art.title}`,`
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
+    ${badge(art.status)}<span class="mono" style="font-size:.72rem">v${art.version}</span>
+    <span style="font-size:.73rem;color:var(--text2)">${def.group} Knowledge Area</span>
+    ${art.approved_at?`<span style="font-size:.72rem;color:var(--green)">Approved ${fmtD(art.approved_at)}</span>`:''}
+  </div>
+  ${rows}`,
+  `<button class="btn btn-secondary" onclick="cm()">Close</button>
+   ${canEdit?`<button class="btn btn-primary" onclick="cm();setTimeout(()=>openPlanArtFormById('${pid}','${type}','${artId}'),100)">✏ Edit</button>`:''}
+   ${canDo(['pmo'])&&art.status==='draft'?`<button class="btn btn-warning" onclick="subArt('${artId}')">Submit for Approval</button>`:''}
+   ${canDo(['pmo'])&&art.status==='in_review'?`<button class="btn btn-success" onclick="apprArt('${artId}')">Approve</button>`:''}`,
+  {lg:true, sub:`${def.label} · ${type.replace(/_/g,' ')}`});
+}
+
+// Fetch existing artefact data and open the edit form
+async function openPlanArtFormById(pid, type, artId){
+  const def=PMP_ARTEFACTS.find(a=>a.type===type);
+  if(!def) return;
+  try{
+    const art=await getDoc('artefacts',artId);
+    const data=art.description?JSON.parse(art.description||'{}'):{};
+    openPlanArtForm(pid,type,def,artId,data);
+  }catch(e){
+    openPlanArtForm(pid,type,def,artId,{});
+  }
+}
+
+
+async function savePlanArt(pid, type, artId, submit=false){
+  const def=PMP_ARTEFACTS.find(a=>a.type===type);
+  if(!def) return;
+  const data={};
+  def.fields.forEach(f=>{
+    const el=$(f.id);
+    if(!el) return;
+    data[f.id]=f.type==='number'?parseFloat(el.value)||0:el.value?.trim()||'';
+  });
+  const description=JSON.stringify(data);
+  // Title from project name + artefact type
+  const title=`${def.label} — ${S.proj?.name||'Project'}`;
+  try{
+    if(artId){
+      await updateDoc('artefacts',artId,{description,status:submit?'in_review':'draft'});
+    } else {
+      await createDoc('artefacts',{
+        project_id:pid, artefact_type:type, title, description,
+        version:'1.0', status:submit?'in_review':'draft', process_group:'planning',
+        owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
+      });
+    }
+    await auditLog('PLAN_ART_SAVED','artefact',artId||pid,`${def.label} saved`,pid);
+    toast(`${def.label} saved!`,'success');
+    cm();if(S.proj)renderTab(S.ptab,S.proj);
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
 
 async function tExec(p,el){
   const {documents:tasks}=await listDocs('tasks',[Query.equal('project_id',p.$id),Query.orderAsc('wbs_code')]);
@@ -2867,12 +3241,10 @@ function openCharterModal(pid, artId, art){
 
   <!-- CONSTRAINTS -->
   <div class="cpane" id="ch5">
-    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">Pre-filled with standard constraint types. Describe each applicable constraint.</p>
-    <div id="ch-con">${constraints.map((c,i)=>`<div class="dyn-row" id="con-${i}">
-      <input value="${esc(c.type)}" class="w120" placeholder="Type" style="font-weight:600;background:#f5f7fa">
-      <input value="${esc(c.description)}" placeholder="Description" style="flex:2">
-      <input value="${esc(c.impact)}" placeholder="Impact" class="w160">
-    </div>`).join('')}</div>
+    <p style="font-size:.74rem;color:var(--text2);margin-bottom:9px">Pre-filled with standard PMP constraint types. Describe each applicable constraint and its impact. Add or remove rows as needed.</p>
+    ${dynHdr(['Constraint Type','Description','Impact on Project',''],['w120','','w160','w32'])}
+    <div id="ch-con">${constraints.map((c)=>`<div class="dyn-row"><input value="${esc(c.type||'')}" class="w120" placeholder="Type" style="font-weight:600"><input value="${esc(c.description||'')}" placeholder="Describe the constraint…" style="flex:2"><input value="${esc(c.impact||'')}" placeholder="Impact if not addressed" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:5px" onclick="const d=document.getElementById('ch-con');const div=document.createElement('div');div.className='dyn-row';div.innerHTML='<input placeholder=\\'Constraint type\\' class=\\'w120\\' style=\\'font-weight:600\\'><input placeholder=\\'Description…\\' style=\\'flex:2\\'><input placeholder=\\'Impact…\\' class=\\'w160\\'><button class=\\'rm\\' onclick=\\'this.parentElement.remove()\\'>✕</button>';d.appendChild(div)">+ Add Constraint</button>
   </div>
 
   <!-- RISKS -->
@@ -2911,7 +3283,7 @@ async function saveCharter(pid, artId, submit=false){
   };
 
   const scope        = getTableRows('ch-scope',['inout','description','remarks']);
-  const equipment    = getTableRows('ch-equip',['inout','description','remarks']);
+  const equipment    = getTableRows('ch-equip',['inout','description','qty','remarks']);
   const deliverables = getTableRows('ch-del',  ['description','planned_date']);
   const assumptions  = getTableRows('ch-ass',  ['description','dependency','validation']);
   const constraints  = getTableRows('ch-con',  ['type','description','impact']);
@@ -3214,8 +3586,39 @@ ${r.pmo_review_notes?`<div class="section">
 }
 
 
+// MOBILE SIDEBAR
+function toggleSidebar(){
+  const sb=$('sb'), ov=$('sb-overlay');
+  const open=sb.classList.toggle('open');
+  ov.style.display=open?'block':'none';
+  document.body.style.overflow=open?'hidden':'';
+}
+function closeSidebar(){
+  const sb=$('sb'), ov=$('sb-overlay');
+  if(sb.classList.contains('open')){
+    sb.classList.remove('open');
+    ov.style.display='none';
+    document.body.style.overflow='';
+  }
+}
+
 // BOOT
 (async()=>{
+  // Mobile: swipe right on main content to open sidebar, swipe left on sidebar to close
+  let tx0=0;
+  document.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-tx0;
+    const sb=$('sb');
+    if(dx>60&&tx0<40&&!sb.classList.contains('open')) toggleSidebar();      // swipe right from edge → open
+    else if(dx<-60&&sb.classList.contains('open'))    closeSidebar();        // swipe left → close
+  },{passive:true});
+
+  // iOS: prevent body scroll when modal open
+  $('mo').addEventListener('touchmove',e=>{
+    if(e.target===$('mo'))e.preventDefault();
+  },{passive:false});
+
   ['li-e','li-p'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});});
   ['su-n','su-e','su-p','su-p2'].forEach(id=>{const el=$(id);if(el)el.addEventListener('keydown',e=>{if(e.key==='Enter')doSignup();});});
   await boot();
