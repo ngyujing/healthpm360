@@ -600,10 +600,12 @@ const sbMap={
   negligible:'bg-green',minor:'bg-blue',moderate:'bg-amber',major:'bg-red',
   positive:'bg-green',negative:'bg-red',neutral:'bg-gray',
   active:'bg-green',pending:'bg-gray',terminated:'bg-red',
+  accepted:'bg-green',approved:'bg-green',
   pass:'bg-green',conditional_pass:'bg-amber',fail:'bg-red',
   fixed_price:'bg-blue',time_material:'bg-purple',milestone_based:'bg-teal',retainer:'bg-gray',
 };
-const badge    = s => `<span class="badge ${sbMap[s]||'bg-gray'}">${esc((s||'').replace(/_/g,' '))}</span>`;
+const BADGE_LABELS={'accepted':'Accepted','approved':'Approved','draft':'Draft','in_review':'In Review','submitted':'Submitted','rejected':'Rejected','implemented':'Implemented','not_started':'Not Started'};
+const badge    = s => `<span class="badge ${sbMap[s]||'bg-gray'}">${esc(BADGE_LABELS[s]||(s||'').replace(/_/g,' '))}</span>`;
 const ragBadge = v => `<span class="badge ${{green:'bg-green',amber:'bg-amber',red:'bg-red'}[v]||'bg-gray'}"><span class="rdot rag-${v}"></span>${(v||'').toUpperCase()}</span>`;
 const rsBadge  = s => {const c=s>=15?'rs-c':s>=9?'rs-h':s>=4?'rs-m':'rs-l';return `<span class="rs ${c}">${s||0}</span>`;};
 const canDo    = p => S.profile?.role==='system_admin'||p.includes(S.profile?.role);
@@ -838,7 +840,7 @@ async function requests(){
       <span style="font-size:.72rem;color:var(--text3)">${pending>0?`<span class="badge bg-amber" style="margin-right:6px">${pending} pending</span>`:''}${data.length} total</span></div>
     <div class="cb" style="padding:9px">
       <div class="fb"><div class="si"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search…" oninput="ft(this.value,'rqtb')"></div>
-      <select class="fsel" onchange="ftc(this.value,'rqtb',3)"><option value="">All Statuses</option><option>draft</option><option>submitted</option><option>approved</option><option>rejected</option></select></div>
+      <select class="fsel" onchange="ftc(this.value,'rqtb',3)"><option value="">All Statuses</option><option>draft</option><option>submitted</option><option value="accepted">accepted</option><option>rejected</option></select></div>
       <div class="tw"><table><thead><tr><th>Req #</th><th>Title</th><th>Requestor</th><th>Status</th><th>Budget</th><th>Date</th><th>Actions</th></tr></thead>
       <tbody id="rqtb">${data.map(r=>`<tr>
         <td class="mono" style="color:var(--blue);cursor:pointer" onclick="viewReq('${r.$id}')">${esc(r.request_number||'—')}</td>
@@ -849,7 +851,7 @@ async function requests(){
         <td class="mono" style="font-size:.68rem">${fmtD(r.$createdAt)}</td>
         <td style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">View</button>
-          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" onclick="apprReq('${r.$id}')">Approve →</button><button class="btn btn-sm btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>`:''}
+          ${canDo(['pmo'])&&r.status==='submitted'?`<button class="btn btn-sm btn-success" onclick="apprReq('${r.$id}')">Accept →</button><button class="btn btn-sm btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>`:''}
           
           <button class="req-del-btn btn btn-danger btn-sm" style="display:none" onclick="deleteRequest('${r.$id}','${esc(r.title).replace(/'/g,"\\'")}')">Delete</button>
         </td></tr>`).join('')||'<tr><td colspan="7" class="te">No requests</td></tr>'}
@@ -1201,8 +1203,8 @@ async function viewReq(id){
           ${r.moh_reporting_required?`<span class="badge bg-purple">MOH Reporting</span>`:''}
           ${!r.regulatory_indicator&&!r.phi_involved&&!r.moh_reporting_required?'<span style="color:var(--text3);font-size:.75rem">None</span>':''}
         </div></div>
-        ${r.status==='approved'?`<div style="margin-top:10px"><span class="badge bg-green" style="font-size:.76rem;padding:4px 10px">✓ Project Created — see Projects portfolio</span></div>`:''}
-        ${r.pmo_review_notes&&r.status==='approved'?`<div class="dsec" style="margin-top:10px"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
+        ${r.status==='accepted'?`<div style="margin-top:10px"><span class="badge bg-green" style="font-size:.76rem;padding:4px 10px">✓ Project Created — see Projects portfolio</span></div>`:''}
+        ${r.pmo_review_notes&&r.status==='accepted'?`<div class="dsec" style="margin-top:10px"><h4>PMO Notes</h4><p style="font-size:.78rem;color:var(--text2)">${esc(r.pmo_review_notes)}</p></div>`:''}
       </div>
       <div>
         <div class="dsec"><h4>Background</h4><p style="font-size:.78rem;line-height:1.6">${esc(r.business_problem||'—')}</p></div>
@@ -1267,10 +1269,10 @@ async function viewReq(id){
     <div class="fg"><label>PMO Review Notes</label><textarea id="pmn" rows="3" placeholder="Optional notes. If rejecting, provide the reason here."></textarea></div>
   </div>`:''}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
-   ${r.status==='approved'?`<button class="btn btn-ghost btn-sm" style="color:var(--purple)" onclick="downloadRequestPDF('${r.$id}')">⬇ Download PDF</button>`:''}
-   ${canEdit&&r.status!=='approved'?`<button class="btn btn-primary" onclick="cm();editReqModal('${r.$id}')">✏ Edit Request</button>`:''}
+   ${r.status==='accepted'?`<button class="btn btn-ghost btn-sm" style="color:var(--purple)" onclick="downloadRequestPDF('${r.$id}')">⬇ Download PDF</button>`:''}
+   ${canEdit&&r.status!=='accepted'?`<button class="btn btn-primary" onclick="cm();editReqModal('${r.$id}')">✏ Edit Request</button>`:''}
    ${canA?`<button class="btn btn-danger" onclick="rejectReq('${r.$id}')">Reject</button>
-   <button class="btn btn-success" onclick="apprReq('${r.$id}')">Approve & Create Project</button>`:''}`,
+   <button class="btn btn-success" onclick="apprReq('${r.$id}')">Accept & Create Project</button>`:''}`,
   {lg:true,sub:r.title});
 }
 
@@ -1446,7 +1448,7 @@ async function updateReq(id, v12Id){
       regulatory_indicator:  $('rf-reg').checked,
       phi_involved:          $('rf-phi').checked,
       moh_reporting_required:$('rf-moh').checked,
-      status:'submitted'  // resubmit if was rejected
+      status:'submitted'
     });
 
     // Update or create v12 data
@@ -1491,7 +1493,7 @@ async function apprReq(id){
   try{
     // 1. Approve the request
     await updateDoc('project_requests',id,{
-      status:'approved', pmo_review_notes:notes,
+      status:'accepted', pmo_review_notes:notes,
       pmo_reviewed_by:S.profile.$id, approved_at:new Date().toISOString()
     });
 
@@ -1872,7 +1874,7 @@ async function tInit(p,el){
     listDocs('artefacts',[Query.equal('project_id',p.$id)]),
     listDocs('stakeholders',[Query.equal('project_id',p.$id)]),
     listDocs('issues',[Query.equal('project_id',p.$id),Query.orderDesc('$createdAt')]),
-    listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')])
+    listDocs('project_requests',[Query.equal('status','accepted'),Query.orderDesc('$createdAt')])
   ]);
   const charter     = ar.documents.find(a=>a.artefact_type==='project_charter');
   const bcArt       = ar.documents.find(a=>a.artefact_type==='business_case');
@@ -1945,8 +1947,9 @@ async function tInit(p,el){
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <span style="font-size:.7rem;color:var(--text3)">Edit inline below — click Save when done</span>
+        ${charter?`<button class="btn btn-ghost btn-sm" style="color:var(--purple)" onclick="downloadCharterPDF('${p.$id}','${charter.$id}')">⬇ PDF</button>`:''}
         ${canE?`<button class="btn btn-primary btn-sm" onclick="saveCharterInline('${p.$id}','${charter?charter.$id:''}')">💾 Save Charter</button>`:''}
-        ${canE&&charter&&charter.status==='draft'?`<button class="btn btn-warning btn-sm" onclick="saveCharterInline('${p.$id}','${charter.$id}',true)">Submit for Approval</button>`:''}
+        
       </div>
     </div>
     <div class="cb" style="padding:0">
@@ -2085,7 +2088,7 @@ async function tInit(p,el){
 
     ${canE?`<div style="padding:13px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:#FAFBFC;border-radius:0 0 8px 8px">
       <button class="btn btn-primary" onclick="saveCharterInline('${p.$id}','${charter?charter.$id:''}')">💾 Save Charter</button>
-      ${charter&&charter.status==='draft'?`<button class="btn btn-warning" onclick="saveCharterInline('${p.$id}','${charter.$id}',true)">Submit for Approval</button>`:''}
+      
       <span style="font-size:.72rem;color:var(--text3);align-self:center">Changes are not saved until you click Save Charter</span>
     </div>`:''}
     </div>
@@ -2400,7 +2403,7 @@ async function importStakeholdersFromRequest(pid, reqId){
 
 async function importEquipmentFromRequest(pid){
   try{
-    const reqRes=await listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')]);
+    const reqRes=await listDocs('project_requests',[Query.equal('status','accepted'),Query.orderDesc('$createdAt')]);
     const linkedReq=reqRes.documents.find(r=>r.title===S.proj?.name)||(reqRes.documents.length?reqRes.documents[0]:null);
     if(!linkedReq){toast('No approved request found to import from','info');return;}
 
@@ -2436,7 +2439,7 @@ function openCharterFromInit(pid, jsonStr){
 }
 
 // Save charter from inline page form (reads table rows by project-scoped IDs)
-async function saveCharterInline(pid, artId, submit=false){
+async function saveCharterInline(pid, artId){
   const getRows=(id,fields)=>{
     const rows=[];
     document.querySelectorAll(`#${id} .dyn-row`).forEach(row=>{
@@ -2458,12 +2461,12 @@ async function saveCharterInline(pid, artId, submit=false){
   const charterData  = JSON.stringify({scope,equipment,deliverables,assumptions,constraints,risks,team});
   try{
     if(artId){
-      await updateDoc('artefacts',artId,{description:charterData,status:submit?'in_review':'draft'});
+      await updateDoc('artefacts',artId,{description:charterData,status:'draft'});
     } else {
       const newArt=await createDoc('artefacts',{
         project_id:pid, artefact_type:'project_charter', title:'Project Charter',
         description:charterData, version:'1.0',
-        status:submit?'in_review':'draft', process_group:'initiation',
+        status:'draft', process_group:'initiation',
         owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
       });
       artId=newArt.$id;
@@ -2521,7 +2524,7 @@ async function saveCharterInline(pid, artId, submit=false){
 // Import equipment from request directly into inline charter table
 async function importEquipmentFromRequestInline(pid){
   try{
-    const reqRes=await listDocs('project_requests',[Query.equal('status','approved'),Query.orderDesc('$createdAt')]);
+    const reqRes=await listDocs('project_requests',[Query.equal('status','accepted'),Query.orderDesc('$createdAt')]);
     const linkedReq=reqRes.documents.find(r=>r.title===S.proj?.name)||(reqRes.documents.length?reqRes.documents[0]:null);
     if(!linkedReq){toast('No approved request found','info');return;}
     const v12res=await listDocs('request_v12_data',[Query.equal('request_id',linkedReq.$id)]);
@@ -2649,7 +2652,7 @@ function openPlanArtForm(pid, type, def, artId, existingData=null){
   <div style="display:grid;grid-template-columns:1fr;gap:10px">${formFields}</div>`,
   `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
    <button class="btn btn-primary" onclick="savePlanArt('${pid}','${type}','${artId||''}')">Save</button>
-   ${artId?`<button class="btn btn-warning" onclick="savePlanArt('${pid}','${type}','${artId}',true)">Save &amp; Submit for Approval</button>`:''}`,
+   `,
   {lg:true, sub:`PMP Standard Artefact · ${def.group} Knowledge Area`});
 }
 
@@ -2676,8 +2679,8 @@ async function viewPlanArt(pid, type, artId, def){
   ${rows}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
    ${canEdit?`<button class="btn btn-primary" onclick="cm();setTimeout(()=>openPlanArtFormById('${pid}','${type}','${artId}'),100)">✏ Edit</button>`:''}
-   ${canDo(['pmo'])&&art.status==='draft'?`<button class="btn btn-warning" onclick="subArt('${artId}')">Submit for Approval</button>`:''}
-   ${canDo(['pmo'])&&art.status==='in_review'?`<button class="btn btn-success" onclick="apprArt('${artId}')">Approve</button>`:''}`,
+
+   `,
   {lg:true, sub:`${def.label} · ${type.replace(/_/g,' ')}`});
 }
 
@@ -2695,7 +2698,7 @@ async function openPlanArtFormById(pid, type, artId){
 }
 
 
-async function savePlanArt(pid, type, artId, submit=false){
+async function savePlanArt(pid, type, artId){
   const def=PMP_ARTEFACTS.find(a=>a.type===type);
   if(!def) return;
   const data={};
@@ -2709,11 +2712,11 @@ async function savePlanArt(pid, type, artId, submit=false){
   const title=`${def.label} — ${S.proj?.name||'Project'}`;
   try{
     if(artId){
-      await updateDoc('artefacts',artId,{description,status:submit?'in_review':'draft'});
+      await updateDoc('artefacts',artId,{description,status:'draft'});
     } else {
       await createDoc('artefacts',{
         project_id:pid, artefact_type:type, title, description,
-        version:'1.0', status:submit?'in_review':'draft', process_group:'planning',
+        version:'1.0', status:'draft', process_group:'planning',
         owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
       });
     }
@@ -3015,7 +3018,7 @@ async function artefacts(){
         <td>${badge(a.status)}</td>
         <td style="font-size:.7rem">${a.approved_at?fmtD(a.approved_at):'Pending'}</td>
         <td><button class="btn btn-ghost btn-sm" onclick="viewArt('${a.$id}')">View</button>
-          ${canDo(['pmo'])&&a.status==='in_review'?`<button class="btn btn-sm btn-success" style="margin-left:3px" onclick="apprArt('${a.$id}')">Approve</button>`:''}
+          
         </td></tr>`;}).join('')||'<tr><td colspan="7" class="te">No artefacts</td></tr>'}
       </tbody></table></div>
     </div>
@@ -3193,7 +3196,7 @@ async function viewArt(id){
   if(a.artefact_type==='project_charter'){
     openCharterModal(a.project_id, a.$id, a); return;
   }
-  const canAppr=canDo(['pmo','project_sponsor'])&&a.status==='in_review';
+  const canAppr=false; // approval workflow removed
   const canSub=canDo(['pmo','project_manager'])&&a.status==='draft';
   om(a.title,`
   <div class="dsec">
@@ -3208,11 +3211,11 @@ async function viewArt(id){
   ${a.description?`<div class="fsec"><h4>Description</h4><p style="font-size:.78rem;line-height:1.6">${esc(a.description)}</p></div>`:''}
   ${canAppr?`<div class="fsec"><h4>Approval Notes</h4><div class="fg"><textarea id="apn" rows="2"></textarea></div></div>`:''}`,
   `<button class="btn btn-secondary" onclick="cm()">Close</button>
-   ${canSub?`<button class="btn btn-primary" onclick="subArt('${a.$id}')">Submit for Approval</button>`:''}
+   
    ${canAppr?`<button class="btn btn-success" onclick="apprArt('${a.$id}')">Approve</button>`:''}`,
   {sub:`${(a.artefact_type||'').replace(/_/g,' ')} · v${a.version}`});
 }
-async function subArt(id){await updateDoc('artefacts',id,{status:'in_review'});toast('Submitted for approval','success');cm();if(S.proj)renderTab(S.ptab,S.proj);else await artefacts();}
+async function subArt(id){/* submission workflow removed */}
 async function apprArt(id){
   await updateDoc('artefacts',id,{status:'approved',approved_by:S.profile.$id,approved_at:new Date().toISOString(),approval_notes:$('apn')?.value||''});
   await auditLog('ARTEFACT_APPROVED','artefact',id,'Artefact approved');
@@ -3788,11 +3791,11 @@ function openCharterModal(pid, artId, art){
   </div>`,
   `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
    <button class="btn btn-primary" onclick="saveCharter('${pid}','${artId||''}')">Save Charter</button>
-   ${art?.status==='draft'?`<button class="btn btn-warning" onclick="saveCharter('${pid}','${artId||''}',true)">Save &amp; Submit for Approval</button>`:''}`,
+   `,
   {lg:true, sub:'Project Description — fills planning artefacts automatically'});
 }
 
-async function saveCharter(pid, artId, submit=false){
+async function saveCharter(pid, artId){
   const getTableRows=(id, fields)=>{
     const rows=[];
     document.querySelectorAll(`#${id} .dyn-row`).forEach(row=>{
@@ -3816,12 +3819,12 @@ async function saveCharter(pid, artId, submit=false){
   try{
     // ── 1. Save charter artefact ──────────────────────────────────────────
     if(artId){
-      await updateDoc('artefacts',artId,{description:charterData, status:submit?'in_review':'draft'});
+      await updateDoc('artefacts',artId,{description:charterData, status:'draft'});
     } else {
       const newArt=await createDoc('artefacts',{
         project_id:pid, artefact_type:'project_charter', title:'Project Charter',
         description:charterData, version:'1.0',
-        status:submit?'in_review':'draft', process_group:'initiation',
+        status:'draft', process_group:'initiation',
         owner_id:S.profile.$id, owner_name:S.profile.full_name, created_by:S.profile.$id
       });
       artId=newArt.$id;
@@ -4102,6 +4105,97 @@ function closeSidebar(){
     ov.style.display='none';
     document.body.style.overflow='';
   }
+}
+
+// ─── CHARTER PDF ─────────────────────────────────────────────────────────
+async function downloadCharterPDF(pid, artId){
+  try{
+    const [art, proj] = await Promise.all([
+      getDoc('artefacts', artId),
+      getDoc('projects', pid)
+    ]);
+    let cd={scope:[],equipment:[],deliverables:[],assumptions:[],constraints:[],risks:[],team:[]};
+    try{Object.assign(cd, JSON.parse(art.description||'{}'));}catch{}
+
+    const escH = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const tbl = (headers, rows, cols) => {
+      if(!rows.length) return `<p style="color:#8A9EBA;font-size:9pt;font-style:italic">No entries</p>`;
+      return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+        ${rows.map(r=>`<tr>${cols.map(c=>`<td>${escH(r[c]||'')}</td>`).join('')}</tr>`).join('')}
+      </tbody></table>`;
+    };
+    const sec = (icon, title, content) =>
+      `<div class="section"><h2>${icon} ${escH(title)}</h2>${content}</div>`;
+
+    const docHtml = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Project Charter — ${escH(proj.name||'')}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1A2B4A;padding:18mm}
+  h1{font-size:16pt;color:#0C2340;margin-bottom:4px}
+  h2{font-size:11pt;color:#0C2340;border-bottom:2px solid #0C2340;padding-bottom:4px;margin:18px 0 9px;display:flex;align-items:center;gap:6px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:12px;border-bottom:3px solid #0C2340}
+  .logo{font-size:14pt;font-weight:800;color:#0C2340}.logo span{color:#0B8A82}
+  .badge{background:#E6F7F2;color:#0F9E6B;padding:2px 8px;border-radius:3px;font-size:8pt;font-weight:700;text-transform:uppercase}
+  .meta{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #DDE3EC;margin-bottom:14px;font-size:9pt}
+  .mr{display:flex;border-bottom:1px solid #DDE3EC;padding:5px 8px}
+  .mr:last-child{border-bottom:none}
+  .ml{font-weight:700;color:#4A637A;width:140px;flex-shrink:0;font-size:8pt}
+  table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:9pt}
+  th{background:#0C2340;color:#fff;padding:5px 7px;text-align:left;font-size:8pt;font-weight:600}
+  td{padding:5px 7px;border-bottom:1px solid #DDE3EC;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#F5F7FA}
+  .section{page-break-inside:avoid;margin-bottom:4px}
+  .footer{margin-top:20px;padding-top:10px;border-top:1px solid #DDE3EC;font-size:8pt;color:#8A9EBA;display:flex;justify-content:space-between}
+  @media print{body{padding:10mm}}
+</style></head><body>
+
+<div class="header">
+  <div>
+    <div class="logo">Health<span>PM</span>360</div>
+    <div style="font-size:8pt;color:#8A9EBA;margin-top:2px">Singapore Healthcare System Integrator</div>
+  </div>
+  <div style="text-align:right">
+    <div style="font-size:13pt;font-weight:700;color:#0C2340">PROJECT CHARTER</div>
+    <div style="font-size:9pt;color:#4A637A">${escH(proj.project_code||'')}</div>
+    <div style="margin-top:4px"><span class="badge">${escH((art.status||'draft').toUpperCase())}</span></div>
+  </div>
+</div>
+
+<div class="meta">
+  <div class="mr"><span class="ml">Project</span><span>${escH(proj.name||'')}</span></div>
+  <div class="mr"><span class="ml">Client</span><span>${escH(proj.client_organisation||'—')}</span></div>
+  <div class="mr"><span class="ml">Project Manager</span><span>${escH(proj.project_manager_name||'—')}</span></div>
+  <div class="mr"><span class="ml">Sponsor</span><span>${escH(proj.sponsor_name||'—')}</span></div>
+  <div class="mr"><span class="ml">Planned Start</span><span>${escH(proj.planned_start_date||'—')}</span></div>
+  <div class="mr"><span class="ml">Planned End</span><span>${escH(proj.planned_end_date||'—')}</span></div>
+  <div class="mr"><span class="ml">Version</span><span>${escH(art.version||'1.0')}</span></div>
+  <div class="mr"><span class="ml">Last Updated</span><span>${new Date(art.$updatedAt||art.$createdAt).toLocaleDateString('en-SG',{day:'2-digit',month:'long',year:'numeric'})}</span></div>
+</div>
+
+${sec('🎯','Scope', tbl(['In/Out','Description','Remarks'], cd.scope||[], ['inout','description','remarks']))}
+${sec('🔧','Equipment', tbl(['No.','Description','Qty','Remarks'], cd.equipment||[], ['no','description','qty','remarks']))}
+${sec('📦','Deliverables', tbl(['Description','Planned Date'], cd.deliverables||[], ['description','planned_date']))}
+${sec('💡','Assumptions', tbl(['Assumption','Dependency','Validation Method'], cd.assumptions||[], ['description','dependency','validation']))}
+${sec('🔒','Constraints', tbl(['Type','Description','Impact'], cd.constraints||[], ['type','description','impact']))}
+${sec('⚠️','Risks & Mitigation', tbl(['Risk','Type','Level','Mitigation Plan'], cd.risks||[], ['risk','type','level','mitigation']))}
+${sec('👥','Project Team', tbl(['Position','Name','Remarks'], cd.team||[], ['position','name','remarks']))}
+
+<div class="footer">
+  <span>HealthPM360 · Project Charter · ${escH(proj.project_code||'')} · Generated ${new Date().toLocaleDateString('en-SG',{day:'2-digit',month:'long',year:'numeric'})}</span>
+  <span>CONTROLLED DOCUMENT</span>
+</div>
+</body></html>`;
+
+    const win = window.open('','_blank','width=900,height=700');
+    win.document.write(docHtml);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>win.print(), 500);
+    toast('Charter PDF ready — use Print → Save as PDF','success',4000);
+  }catch(e){toast('PDF error: '+e.message,'error');}
 }
 
 // BOOT
