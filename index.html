@@ -313,6 +313,58 @@ button,a,select,input{touch-action:manipulation}
   .kg{grid-template-columns:repeat(2,1fr)!important}
   #pgrid{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))!important}
 }
+
+/* ─ Breadcrumb navigation ─ */
+.bc-bar{display:flex;align-items:center;gap:4px;padding:5px 18px;background:#FAFBFD;border-bottom:1px solid var(--border);font-size:.67rem;color:var(--text3);flex-shrink:0;overflow-x:auto;white-space:nowrap;min-height:28px}
+.bc-item{cursor:pointer;color:var(--blue);font-weight:500;transition:color .1s}
+.bc-item:hover{color:var(--blue-h);text-decoration:underline}
+.bc-item.bc-cur{color:var(--text2);font-weight:600;cursor:default}
+.bc-item.bc-cur:hover{text-decoration:none}
+.bc-sep{color:#C5D0E0;margin:0 2px;font-size:.62rem}
+
+/* ─ Dashboard role tabs ─ */
+.dash-rtabs{display:flex;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;box-shadow:var(--sh);margin-bottom:14px;width:fit-content}
+.dash-rtab{padding:6px 18px;font-size:.74rem;font-weight:600;color:var(--text2);cursor:pointer;border-radius:8px;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.dash-rtab:hover{background:var(--bg);color:var(--text)}
+.dash-rtab.active{background:var(--navy);color:#fff;box-shadow:0 2px 4px rgba(12,35,64,.25)}
+.dash-rv{display:none}.dash-rv.active{display:block}
+
+/* ─ Workflow Pipeline sidebar ─ */
+.wfs{padding:8px 9px 6px;border-top:1px solid rgba(255,255,255,.07);margin-top:2px}
+.wfs-lbl{font-size:.5rem;font-weight:700;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:.13em;padding:0 6px;margin-bottom:5px}
+.wfst{display:flex;align-items:center;gap:6px;padding:4px 7px;border-radius:5px;font-size:.63rem;color:rgba(255,255,255,.3);margin-bottom:0;transition:all .12s}
+.wfst.done{color:rgba(255,255,255,.58)}
+.wfst.done .wfn{background:var(--teal)!important;color:#fff}
+.wfst.wf-active{color:#fff;background:rgba(255,255,255,.08);font-weight:600}
+.wfst.wf-active .wfn{background:var(--blue)!important;color:#fff}
+.wfn{width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:.51rem;font-weight:700;flex-shrink:0;line-height:1}
+.wf-line{margin:0 0 0 14px;width:1px;height:4px;background:rgba(255,255,255,.08);display:block}
+.wfst.done~.wfst.done .wf-line,.wfst.done>.wf-line{background:rgba(11,138,130,.4)}
+
+/* ─ Charter section completion dots ─ */
+.ctab-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:rgba(200,210,225,.5);margin-left:5px;vertical-align:middle;flex-shrink:0;transition:background .2s}
+.ctab.ch-done .ctab-dot{background:var(--green)}
+.ctab.active .ctab-dot{background:var(--blue)}
+
+/* ─ Validation/enforcement banners ─ */
+.vban{display:flex;align-items:flex-start;gap:8px;border-radius:7px;padding:10px 13px;font-size:.74rem;margin-bottom:12px;line-height:1.5;border:1px solid transparent}
+.vban-warn{background:var(--amber-bg);border-color:#FDE68A;color:#92400E}
+.vban-err{background:var(--red-bg);border-color:#FCA5A5;color:#991B1B}
+.vban-ok{background:var(--green-bg);border-color:#A7F3D0;color:#065F46}
+.vban-ico{flex-shrink:0;font-size:.9rem;margin-top:1px}
+
+/* ─ Baseline comment textarea ─ */
+.bl-cmtbox{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r);font-size:.78rem;font-family:inherit;resize:vertical;min-height:56px;margin-top:6px;transition:border .15s}
+.bl-cmtbox:focus{outline:none;border-color:var(--blue)}
+
+/* ─ Stage gate upload status ─ */
+.sgrow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:.77rem}
+.sgrow:last-child{border-bottom:none}
+.sg-req{font-size:.62rem;color:var(--text3);margin-left:5px;font-weight:600}
+.sg-st{display:flex;align-items:center;gap:5px;font-size:.7rem}
+.sg-done{color:var(--green);font-weight:600}
+.sg-pend{color:var(--amber);font-weight:600}
+.sg-upload-btn{background:var(--blue-light);color:var(--blue);border:none;border-radius:5px;padding:4px 9px;font-size:.68rem;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
@@ -390,6 +442,12 @@ button,a,select,input{touch-action:manipulation}
       <div class="nav" id="nav-audit" style="display:none" data-v="audit"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Audit Log</div>
       <div class="nav" id="nav-admin" style="display:none" data-v="admin"><svg class="ni" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Users</div>
     </div>
+    <!-- Workflow Pipeline -->
+    <div class="wfs" id="wf-pipe" style="display:none">
+      <div class="wfs-lbl">Project Lifecycle</div>
+      <div id="wf-stages"></div>
+    </div>
+
     <div class="sbf">
       <div class="urow" onclick="doLogout()">
         <div class="uav" id="uav">?</div>
@@ -405,6 +463,9 @@ button,a,select,input{touch-action:manipulation}
       </button>
       <div style="flex:1;min-width:0"><span class="tt" id="tt">Dashboard</span><span class="ts" id="ts"></span></div>
       <div style="display:flex;align-items:center;gap:6px" id="ta"></div>
+    </div>
+    <div class="bc-bar" id="bc-bar">
+      <span class="bc-item bc-cur">Home</span>
     </div>
     <div id="mc"><div class="loading"><div class="spin"></div> Loading…</div></div>
   </div>
@@ -771,7 +832,59 @@ async function nav(view,params={}){
   const el=document.querySelector(`.nav[data-v="${view}"]`);if(el)el.classList.add('active');
   $('ta').innerHTML='';$('ts').textContent='';
   $('mc').innerHTML=`<div class="loading"><div class="spin"></div> Loading…</div>`;
+  // Update breadcrumb for top-level views
+  const bcMap={
+    dashboard:[{label:'Home',cur:true}],
+    requests:[{label:'Home',view:'dashboard'},{label:'Project Intake',cur:true}],
+    projects:[{label:'Home',view:'dashboard'},{label:'Projects',cur:true}],
+    risks:[{label:'Home',view:'dashboard'},{label:'Governance',cur:false},{label:'Risk Register',cur:true}],
+    changes:[{label:'Home',view:'dashboard'},{label:'Governance',cur:false},{label:'Change Requests',cur:true}],
+    milestones:[{label:'Home',view:'dashboard'},{label:'Milestones',cur:true}],
+    artefacts:[{label:'Home',view:'dashboard'},{label:'Artefact Library',cur:true}],
+    audit:[{label:'Home',view:'dashboard'},{label:'Audit Log',cur:true}],
+    admin:[{label:'Home',view:'dashboard'},{label:'Users & Admin',cur:true}],
+  };
+  if(bcMap[view]) setBreadcrumb(bcMap[view]);
+  // Hide pipeline when not in project detail
+  if(view!=='projDetail'){const p=$('wf-pipe');if(p)p.style.display='none';}
   ({dashboard,requests,projects,risks,changes,milestones,artefacts,audit,admin,projDetail}[view]||projects)(params);
+}
+
+function setBreadcrumb(items){
+  const bar=$('bc-bar');
+  if(!bar) return;
+  bar.innerHTML=items.map((item,i)=>{
+    const sep=i>0?`<span class="bc-sep">›</span>`:'';
+    if(item.cur){return `${sep}<span class="bc-item bc-cur">${esc(item.label)}</span>`;}
+    return `${sep}<span class="bc-item" onclick="nav('${item.view||'dashboard'}')">${esc(item.label)}</span>`;
+  }).join('');
+}
+
+const WF_STAGES=[
+  {n:1,label:'Project Intake',statuses:[]},
+  {n:2,label:'Triage & Decision',statuses:[]},
+  {n:3,label:'Initiation & Charter',statuses:['initiation']},
+  {n:4,label:'Planning (WBS)',statuses:['planning']},
+  {n:5,label:'Baseline Approval',statuses:[]},
+  {n:6,label:'Execution',statuses:['executing']},
+  {n:7,label:'RAID & Changes',statuses:[]},
+  {n:8,label:'Stage Gate Review',statuses:[]},
+  {n:9,label:'Monitoring & Control',statuses:['monitoring_controlling']},
+  {n:10,label:'Project Closure',statuses:['closing','closed']},
+];
+
+function updateWorkflowPipeline(proj){
+  const pipe=$('wf-pipe'),stagesEl=$('wf-stages');
+  if(!pipe||!stagesEl) return;
+  const statusOrder={initiation:3,planning:4,executing:6,monitoring_controlling:9,closing:10,closed:10};
+  const cur = proj ? (statusOrder[proj.status]||3) : 1;
+  pipe.style.display='';
+  stagesEl.innerHTML=WF_STAGES.map((s,i)=>{
+    const state = s.n < cur ? 'done' : s.n===cur ? 'wf-active' : '';
+    const icon  = s.n < cur ? '✓' : String(s.n);
+    const line  = i<WF_STAGES.length-1 ? `<div class="wf-line"></div>` : '';
+    return `<div class="wfst ${state}"><span class="wfn">${icon}</span><span class="wf-txt">${s.label}</span></div>${line}`;
+  }).join('');
 }
 document.querySelectorAll('.nav[data-v]').forEach(el=>el.addEventListener('click',()=>nav(el.dataset.v)));
 
@@ -788,8 +901,10 @@ async function updateBadges(){
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────
+let _dashTab = null; // remember last active tab per session
 async function dashboard(){
   $('tt').textContent='Dashboard';
+  setBreadcrumb([{label:'Home',cur:true}]);
   const [pj,rq,rk,cr,ms]=await Promise.all([
     listDocs('projects',[Query.equal('is_archived',false)]),
     listDocs('project_requests',[Query.orderDesc('$createdAt')]),
@@ -802,46 +917,183 @@ async function dashboard(){
   const atRisk=projs.filter(p=>p.health_status==='red').length;
   const crit=riskd.filter(r=>r.risk_score>=15&&!['closed','accepted'].includes(r.status)).length;
   const pend=reqs.filter(r=>['submitted','pmo_review'].includes(r.status)).length;
+  const pendCR=crs.filter(c=>c.status==='submitted').length;
+
+  // Determine default tab based on user role
+  const role=S.profile?.role||'project_manager';
+  const defTab=_dashTab||(role==='project_sponsor'?'sponsor':role==='pmo'?'pmo':'pm');
+
   $('mc').innerHTML=`
-  <div class="kg">
-    <div class="kc kb"><div class="kl">Active Projects</div><div class="kv b">${active}</div><div class="ks">${projs.length} total</div></div>
-    <div class="kc kr"><div class="kl">At-Risk Projects</div><div class="kv r">${atRisk}</div><div class="ks">Health status RED</div></div>
-    <div class="kc ka"><div class="kl">Critical Risks</div><div class="kv a">${crit}</div><div class="ks">Score ≥ 15</div></div>
-    <div class="kc kg2"><div class="kl">Pending Requests</div><div class="kv g">${pend}</div><div class="ks">Awaiting PMO review</div></div>
-  </div>
-  <div class="g2" style="gap:11px;margin-bottom:11px">
-    <div class="card">
-      <div class="ch"><span class="ct">Portfolio Health</span><button class="btn btn-ghost btn-sm" onclick="nav('projects')">View All →</button></div>
-      <div class="tw"><table><thead><tr><th>Project</th><th>Status</th><th>Health</th><th>Budget</th></tr></thead><tbody>
-      ${projs.slice(0,6).map(p=>`<tr style="cursor:pointer" onclick="nav('projDetail',{id:'${p.$id}'})"><td><div style="font-weight:600;font-size:.78rem">${esc(p.name)}</div><div class="mono">${esc(p.project_code)}</div></td><td>${badge(p.status)}</td><td>${ragBadge(p.health_status)}</td><td style="font-size:.74rem">${fmtM(p.planned_budget)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No projects</td></tr>'}
-      </tbody></table></div>
+  <!-- Role-based view tabs -->
+  <div class="dash-rtabs" id="dash-rtabs">
+    <div class="dash-rtab ${defTab==='sponsor'?'active':''}" onclick="switchDashTab('sponsor',this)">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Sponsor View
     </div>
-    <div class="card">
-      <div class="ch"><span class="ct">At-Risk Milestones</span><button class="btn btn-ghost btn-sm" onclick="nav('milestones')">View All →</button></div>
-      <div class="tw"><table><thead><tr><th>Milestone</th><th>Due</th><th>Status</th></tr></thead><tbody>
-      ${mss.slice(0,6).map(m=>`<tr><td class="trunc" style="max-width:160px">${esc(m.name)}</td><td class="mono" style="font-size:.7rem">${fmtD(m.planned_date)}</td><td>${badge(m.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No at-risk milestones</td></tr>'}
-      </tbody></table></div>
+    <div class="dash-rtab ${defTab==='pmo'?'active':''}" onclick="switchDashTab('pmo',this)">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>PMO View
+    </div>
+    <div class="dash-rtab ${defTab==='pm'?'active':''}" onclick="switchDashTab('pm',this)">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6m-6 4h6"/></svg>PM View
     </div>
   </div>
-  <div class="g2" style="gap:11px">
-    <div class="card">
-      <div class="ch"><span class="ct">Recent Requests</span><button class="btn btn-ghost btn-sm" onclick="nav('requests')">View All →</button></div>
-      <div class="tw"><table><thead><tr><th>Title</th><th>Requestor</th><th>Status</th></tr></thead><tbody>
-      ${reqs.slice(0,5).map(r=>`<tr><td class="trunc" style="max-width:180px">${esc(r.title)}</td><td style="font-size:.73rem">${esc(r.requestor_name)}</td><td>${badge(r.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No requests</td></tr>'}
-      </tbody></table></div>
+
+  <!-- SPONSOR VIEW -->
+  <div class="dash-rv ${defTab==='sponsor'?'active':''}" id="dv-sponsor">
+    <div class="kg">
+      <div class="kc kb"><div class="kl">Active Projects</div><div class="kv b">${active}</div><div class="ks">${projs.length} total in portfolio</div></div>
+      <div class="kc kr"><div class="kl">At-Risk Projects</div><div class="kv r">${atRisk}</div><div class="ks">Health status RED</div></div>
+      <div class="kc ka"><div class="kl">Pending Requests</div><div class="kv a">${pend}</div><div class="ks">Awaiting PMO review</div></div>
+      <div class="kc kg2"><div class="kl">Portfolio Budget</div><div class="kv g" style="font-size:1.1rem">${'S$'+Math.round(projs.reduce((a,p)=>a+(p.planned_budget||0),0)/1000)+'K'}</div><div class="ks">Total planned budget</div></div>
+    </div>
+    <div class="g2" style="gap:11px;margin-bottom:11px">
+      <div class="card">
+        <div class="ch"><span class="ct">Portfolio Health Overview</span><button class="btn btn-ghost btn-sm" onclick="nav('projects')">View All →</button></div>
+        <div class="tw"><table><thead><tr><th>Project</th><th>Stage</th><th>Health</th><th>Budget</th><th>Go-Live</th></tr></thead><tbody>
+        ${projs.slice(0,6).map(p=>`<tr style="cursor:pointer" onclick="nav('projDetail',{id:'${p.$id}'})">
+          <td><div style="font-weight:600;font-size:.78rem">${esc(p.name)}</div><div class="mono">${esc(p.project_code)}</div></td>
+          <td>${badge(p.status)}</td><td>${ragBadge(p.health_status)}</td>
+          <td style="font-size:.74rem">${fmtM(p.planned_budget)}</td>
+          <td class="mono" style="font-size:.7rem">${fmtD(p.planned_end_date)||'—'}</td>
+        </tr>`).join('')||'<tr><td colspan="5" class="te">No projects</td></tr>'}
+        </tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Key Milestones At Risk</span><button class="btn btn-ghost btn-sm" onclick="nav('milestones')">All Milestones →</button></div>
+        <div class="tw"><table><thead><tr><th>Milestone</th><th>Project</th><th>Due Date</th><th>Status</th></tr></thead><tbody>
+        ${mss.slice(0,5).map(m=>`<tr><td class="trunc" style="max-width:120px">${esc(m.name)}</td>
+          <td style="font-size:.7rem;color:var(--text3)">${esc(projs.find(p=>p.$id===m.project_id)?.project_code||'—')}</td>
+          <td class="mono" style="font-size:.7rem">${fmtD(m.planned_date)}</td><td>${badge(m.status)}</td></tr>`).join('')||'<tr><td colspan="4" class="te">No at-risk milestones</td></tr>'}
+        </tbody></table></div>
+      </div>
     </div>
     <div class="card">
-      <div class="ch"><span class="ct">Recent Change Requests</span><button class="btn btn-ghost btn-sm" onclick="nav('changes')">View All →</button></div>
-      <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Status</th></tr></thead><tbody>
-      ${crs.slice(0,5).map(c=>`<tr><td class="mono">${esc(c.cr_number)}</td><td class="trunc" style="max-width:160px">${esc(c.title)}</td><td>${badge(c.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No CRs</td></tr>'}
+      <div class="ch"><span class="ct">Benefits Realisation Tracker</span></div>
+      <div class="cb"><p style="font-size:.78rem;color:var(--text2);line-height:1.7">
+        Track planned vs achieved benefits across active projects. Navigate to a project's <strong>Closure</strong> tab to update benefits realisation data.
+        <br><span style="color:var(--text3);font-size:.73rem">Active projects: ${active} · Closed: ${projs.filter(p=>p.status==='closed').length} · On Hold: ${projs.filter(p=>p.status==='on_hold').length}</span>
+      </p></div>
+    </div>
+  </div>
+
+  <!-- PMO VIEW -->
+  <div class="dash-rv ${defTab==='pmo'?'active':''}" id="dv-pmo">
+    <div class="kg">
+      <div class="kc kb"><div class="kl">Active Projects</div><div class="kv b">${active}</div><div class="ks">${projs.length} total</div></div>
+      <div class="kc ka"><div class="kl">Pending Intake</div><div class="kv a">${pend}</div><div class="ks">Awaiting triage</div></div>
+      <div class="kc kr"><div class="kl">Critical Risks</div><div class="kv r">${crit}</div><div class="ks">Score ≥ 15</div></div>
+      <div class="kc kg2"><div class="kl">Open CRs</div><div class="kv g">${pendCR}</div><div class="ks">Pending CCB approval</div></div>
+    </div>
+    <div class="g2" style="gap:11px;margin-bottom:11px">
+      <div class="card">
+        <div class="ch"><span class="ct">Intake Queue</span><button class="btn btn-ghost btn-sm" onclick="nav('requests')">Manage →</button></div>
+        <div class="tw"><table><thead><tr><th>Request</th><th>Requestor</th><th>Budget</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+        ${reqs.filter(r=>['submitted','pmo_review'].includes(r.status)).slice(0,5).map(r=>`<tr>
+          <td class="trunc" style="max-width:150px;font-weight:600;font-size:.78rem;cursor:pointer;color:var(--blue)" onclick="viewReq('${r.$id}')">${esc(r.title)}</td>
+          <td style="font-size:.73rem">${esc(r.requestor_name)}</td>
+          <td style="font-size:.73rem">${r.initial_budget_estimate?fmtM(r.initial_budget_estimate):'—'}</td>
+          <td>${badge(r.status)}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="viewReq('${r.$id}')">Review →</button></td>
+        </tr>`).join('')||'<tr><td colspan="5" class="te">No pending requests</td></tr>'}
+        </tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Change Requests Pending CCB</span><button class="btn btn-ghost btn-sm" onclick="nav('changes')">All CRs →</button></div>
+        <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Type</th><th>Cost Δ</th><th>Status</th></tr></thead><tbody>
+        ${crs.filter(c=>c.status==='submitted').slice(0,5).map(c=>`<tr>
+          <td class="mono" style="color:var(--blue)">${esc(c.cr_number)}</td>
+          <td class="trunc" style="max-width:130px">${esc(c.title)}</td>
+          <td>${badge(c.change_type)}</td>
+          <td style="font-size:.72rem;${c.cost_impact>0?'color:var(--red)':''}">${c.cost_impact?fmtM(c.cost_impact):'—'}</td>
+          <td>${badge(c.status)}</td>
+        </tr>`).join('')||'<tr><td colspan="5" class="te">No pending CRs</td></tr>'}
+        </tbody></table></div>
+      </div>
+    </div>
+    <div class="g2" style="gap:11px">
+      <div class="card">
+        <div class="ch"><span class="ct">Stage Gate Status</span></div>
+        <div class="tw"><table><thead><tr><th>Project</th><th>Stage</th><th>Gate</th><th>Status</th></tr></thead><tbody>
+        ${projs.filter(p=>!['closed','cancelled'].includes(p.status)).slice(0,5).map(p=>`<tr style="cursor:pointer" onclick="nav('projDetail',{id:'${p.$id}'})">
+          <td style="font-weight:600;font-size:.78rem">${esc(p.name)}</td>
+          <td>${badge(p.status)}</td>
+          <td style="font-size:.7rem;color:var(--text3)">Gate Review</td>
+          <td>${ragBadge(p.health_status)}</td>
+        </tr>`).join('')||'<tr><td colspan="4" class="te">No active projects</td></tr>'}
+        </tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Risk Heatmap Summary</span><button class="btn btn-ghost btn-sm" onclick="nav('risks')">All Risks →</button></div>
+        <div class="cb">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;text-align:center">
+            ${[{label:'Critical',cls:'bg-red',count:riskd.filter(r=>r.risk_score>=15&&!['closed','accepted'].includes(r.status)).length},
+               {label:'High',cls:'bg-amber',count:riskd.filter(r=>r.risk_score>=9&&r.risk_score<15&&!['closed','accepted'].includes(r.status)).length},
+               {label:'Medium',cls:'bg-blue',count:riskd.filter(r=>r.risk_score>=4&&r.risk_score<9&&!['closed','accepted'].includes(r.status)).length},
+               {label:'Low',cls:'bg-green',count:riskd.filter(r=>r.risk_score<4&&!['closed','accepted'].includes(r.status)).length}
+            ].map(r=>`<div style="background:var(--bg);border-radius:8px;padding:10px 6px;border:1px solid var(--border)">
+              <div style="font-size:1.4rem;font-weight:800;color:var(--text)">${r.count}</div>
+              <span class="badge ${r.cls}" style="font-size:.58rem">${r.label}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PM VIEW -->
+  <div class="dash-rv ${defTab==='pm'?'active':''}" id="dv-pm">
+    <div class="kg">
+      <div class="kc kb"><div class="kl">My Projects</div><div class="kv b">${projs.filter(p=>p.project_manager_id===S.profile?.$id||p.project_manager_name===S.profile?.full_name).length||active}</div><div class="ks">Assigned to me</div></div>
+      <div class="kc kr"><div class="kl">At-Risk</div><div class="kv r">${atRisk}</div><div class="ks">Needs attention</div></div>
+      <div class="kc ka"><div class="kl">Critical Risks</div><div class="kv a">${crit}</div><div class="ks">Score ≥ 15</div></div>
+      <div class="kc kg2"><div class="kl">Open CRs</div><div class="kv g">${pendCR}</div><div class="ks">Awaiting approval</div></div>
+    </div>
+    <div class="card" style="margin-bottom:11px">
+      <div class="ch"><span class="ct">My Projects</span><button class="btn btn-ghost btn-sm" onclick="nav('projects')">View All →</button></div>
+      <div class="tw"><table><thead><tr><th>Project</th><th>Status</th><th>Health</th><th>Progress</th><th>Next Milestone</th><th>Actions</th></tr></thead><tbody>
+      ${projs.slice(0,5).map(p=>`<tr>
+        <td style="cursor:pointer" onclick="nav('projDetail',{id:'${p.$id}'})">
+          <div style="font-weight:600;font-size:.78rem">${esc(p.name)}</div>
+          <div class="mono" style="font-size:.64rem">${esc(p.project_code)}</div>
+        </td>
+        <td>${badge(p.status)}</td><td>${ragBadge(p.health_status)}</td>
+        <td style="min-width:70px">
+          <div class="pbar"><div class="pfill" style="width:${p.completion_pct||0}%"></div></div>
+          <span style="font-size:.64rem;color:var(--text3)">${p.completion_pct||0}%</span>
+        </td>
+        <td style="font-size:.7rem;color:var(--text3)">${fmtD(p.planned_end_date)||'—'}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="nav('projDetail',{id:'${p.$id}'})">Open →</button></td>
+      </tr>`).join('')||'<tr><td colspan="6" class="te">No projects</td></tr>'}
       </tbody></table></div>
+    </div>
+    <div class="g2" style="gap:11px">
+      <div class="card">
+        <div class="ch"><span class="ct">Recent Requests</span><button class="btn btn-ghost btn-sm" onclick="nav('requests')">View All →</button></div>
+        <div class="tw"><table><thead><tr><th>Title</th><th>Status</th><th>Date</th></tr></thead><tbody>
+        ${reqs.slice(0,5).map(r=>`<tr><td class="trunc" style="max-width:160px;font-weight:500;cursor:pointer;color:var(--blue)" onclick="viewReq('${r.$id}')">${esc(r.title)}</td><td>${badge(r.status)}</td><td class="mono" style="font-size:.68rem">${fmtD(r.$createdAt)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No requests</td></tr>'}
+        </tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">Recent Change Requests</span><button class="btn btn-ghost btn-sm" onclick="nav('changes')">View All →</button></div>
+        <div class="tw"><table><thead><tr><th>CR #</th><th>Title</th><th>Status</th></tr></thead><tbody>
+        ${crs.slice(0,5).map(c=>`<tr><td class="mono">${esc(c.cr_number)}</td><td class="trunc" style="max-width:130px">${esc(c.title)}</td><td>${badge(c.status)}</td></tr>`).join('')||'<tr><td colspan="3" class="te">No CRs</td></tr>'}
+        </tbody></table></div>
+      </div>
     </div>
   </div>`;
+}
+
+function switchDashTab(tab, el){
+  _dashTab=tab;
+  document.querySelectorAll('.dash-rtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.dash-rv').forEach(v=>v.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const v=$('dv-'+tab);if(v)v.classList.add('active');
 }
 
 // ─── PROJECT REQUESTS ─────────────────────────────────────────────────────
 async function requests(){
   $('tt').textContent='Project Requests';
+  setBreadcrumb([{label:'Home',view:'dashboard'},{label:'Project Intake',cur:true}]);
   if(canDo(['pmo','project_manager','project_sponsor']))$('ta').innerHTML=`
     ${S.profile?.role==='system_admin'?`<button class="btn btn-ghost btn-sm" onclick="toggleReqEditMode()" id="req-edit-btn">✏ Edit</button>`:''}
     <button class="btn btn-primary btn-sm" onclick="openReqModal()">+ New Request</button>`;
@@ -1094,7 +1346,18 @@ function reqStep(dir){
 async function submitReq(){
   const v=id=>$(id)?.value?.trim();
   if(!v('rf-sm')||!v('rf-inst')||!v('rf-t')||!v('rf-bg')||!v('rf-bc')){
-    toast('Fill mandatory fields (marked *)','error');reqStep(-(_rStep-1));return;
+    toast('Fill all mandatory fields (marked *)','error');reqStep(-(_rStep-1));return;
+  }
+  // Budget validation: if provided, must be a sensible value (≥ 50)
+  const budget=parseFloat(v('rf-rev'))||0;
+  if(budget>0 && budget<50){
+    toast('Budget must be ≥ S$50 or leave blank','error');reqStep(-(_rStep-1));return;
+  }
+  // PHI confirmation
+  const phi=$('rf-phi')?.checked;
+  if(phi){
+    const confirmed=confirm('⚠ PHI Data Governance Notice\n\nThis project involves Patient Health Information (PHI).\n\nBy proceeding you confirm that:\n• PDPA data protection controls will be applied\n• PHI access is restricted to authorised personnel\n• MOH data handling guidelines will be followed\n\nProceed with submission?');
+    if(!confirmed) return;
   }
   try{
     const reqDoc=await createDoc('project_requests',{
@@ -1501,6 +1764,34 @@ function swCTab(el,paneId){
   document.getElementById(paneId)?.classList.add('active');
 }
 
+function markCharterTab(el){
+  // Mark the current (previously active) tab as done, and mark clicked tab as visited
+  const tabs = el.closest('.ctabs');
+  if(!tabs) return;
+  // Mark all currently active tabs as done on leaving
+  tabs.querySelectorAll('.ctab.active').forEach(t=>{if(t!==el)t.classList.add('ch-done');});
+  // Mark clicked tab as done if it was already visited
+  // After navigation, also mark as done when leaving
+  setTimeout(()=>{
+    tabs.querySelectorAll('.ctab:not(.active)').forEach(t=>t.classList.add('ch-done'));
+    // Check if all tabs are done
+    const total=tabs.querySelectorAll('.ctab').length;
+    const done=tabs.querySelectorAll('.ctab.ch-done').length;
+    if(done>=total-1){
+      // Show ready banner
+      const existing=document.getElementById('charter-ready-banner');
+      if(!existing){
+        const ban=document.createElement('div');
+        ban.id='charter-ready-banner';
+        ban.className='vban vban-ok';
+        ban.innerHTML='<span class="vban-ico">✓</span><span>All sections reviewed — charter is ready to save.</span>';
+        const tabsContainer=document.getElementById('charter-tabs');
+        if(tabsContainer&&tabsContainer.nextSibling) tabsContainer.parentNode.insertBefore(ban,tabsContainer.nextSibling);
+      }
+    }
+  },50);
+}
+
 async function apprReq(id){
   const notes=$('pmn')?.value||'';
   try{
@@ -1744,6 +2035,14 @@ async function projDetail({id}){
   $('ta').innerHTML=`<span>${ragBadge(p.health_status)}</span>
     ${S.profile?.role==='system_admin'?`<button class="btn btn-danger btn-sm" onclick="deleteProject('${p.$id}','${p.name.replace(/'/g,"\\'")}')">Delete</button>`:''}
     <button class="btn btn-secondary btn-sm" onclick="nav('projects')">← Portfolio</button>`;
+  // Set breadcrumb: Home > Projects > [Project Name]
+  setBreadcrumb([
+    {label:'Home',view:'dashboard'},
+    {label:'Projects',view:'projects'},
+    {label:p.name,cur:true}
+  ]);
+  // Show & update workflow pipeline in sidebar
+  updateWorkflowPipeline(p);
   const tabs=['overview','initiation','planning','executing','monitoring','closing'];
   const tl={overview:'Overview',initiation:'1. Initiating',planning:'2. Planning',executing:'3. Executing',monitoring:'4. Mon. & Control',closing:'5. Closing'};
   $('mc').innerHTML=`
@@ -2578,10 +2877,10 @@ async function tPlan(p,el){
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:13px">
     <div>
       <p style="font-size:.8rem;color:var(--text2)">PMP-standard planning artefacts. Click <strong>+ Add</strong> on any artefact to fill in the structured form.</p>
-      ${S.proj?.baseline_locked?`<span class="badge bg-green" style="font-size:.72rem">✓ Baseline Locked</span>`:''}
+      ${S.proj?.baseline_locked?`<span class="badge bg-green" style="font-size:.72rem">✓ Baseline Locked &amp; Approved</span>`:''}
     </div>
     <div style="display:flex;gap:6px">
-      ${canDo(['pmo'])&&!p.baseline_locked?`<button class="btn btn-success btn-sm" onclick="lockBase('${p.$id}')">🔒 Lock Baseline</button>`:''}
+      ${canDo(['pmo'])&&!p.baseline_locked?`<button class="btn btn-success btn-sm" onclick="lockBase('${p.$id}')">🔒 Review &amp; Approve Baseline</button>`:canDo(['pmo'])&&p.baseline_locked?`<button class="btn btn-ghost btn-sm" onclick="toast('Baseline is already approved and locked','info')">🔒 Baseline Approved</button>`:''}
     </div>
   </div>
 
@@ -2815,20 +3114,21 @@ async function tMon(p,el){
 async function tClose(p,el){
   const {documents:ll}=await listDocs('lessons_learned',[Query.equal('project_id',p.$id)]);
   const items=[
-    'SIT (System Integration Testing) completed and signed off',
-    'All deliverables accepted by client',
-    'UAT completed and signed off',
-    'All change requests resolved',
-    'Risk register reviewed and closed',
-    'Issue register cleared',
-    'Contract(s) formally closed',
-    'Financial reconciliation completed',
-    'Lessons learned register completed',
-    'Project Closure Report approved',
-    'Benefits realisation handover done',
-    'PMO final approval received',
-    'Sponsor sign-off obtained'
+    {key:'sit',label:'SIT (System Integration Testing) completed and signed off',auto:p.sit_status==='completed'},
+    {key:'del',label:'All deliverables accepted by client',auto:false},
+    {key:'uat',label:'UAT completed and signed off',auto:false},
+    {key:'cr', label:'All change requests resolved',auto:false},
+    {key:'rsk',label:'Risk register reviewed and closed',auto:false},
+    {key:'iss',label:'Issue register cleared',auto:false},
+    {key:'con',label:'Contract(s) formally closed',auto:false},
+    {key:'fin',label:'Financial reconciliation completed',auto:false},
+    {key:'ll', label:'Lessons learned register completed',auto:ll.length>0},
+    {key:'rep',label:'Project Closure Report approved',auto:false},
+    {key:'ben',label:'Benefits realisation handover done',auto:false},
+    {key:'pmo',label:'PMO final approval received',auto:false},
+    {key:'spon',label:'Sponsor sign-off obtained',auto:false},
   ];
+  const total=items.length;
   el.innerHTML=`
   <!-- SIT SECTION -->
   <div class="card" style="margin-bottom:11px">
@@ -2862,12 +3162,27 @@ async function tClose(p,el){
 
   <div class="g2" style="gap:11px;margin-bottom:11px">
     <div class="card">
-      <div class="ch"><span class="ct">Project Closure Checklist</span></div>
-      <div class="cb">${items.map(i=>`<div class="fchk" style="padding:6px 0;border-bottom:1px solid var(--border)">
-        <input type="checkbox" style="accent-color:var(--green)" ${i.includes('SIT')&&p.sit_status==='completed'?'checked':''}>
-        <label style="font-size:.78rem">${i}</label></div>`).join('')}
-        ${canDo(['pmo','project_sponsor'])&&p.status!=='closed'?`<div style="margin-top:11px">
-          <button class="btn btn-success btn-sm" onclick="closeProj('${p.$id}')">Mark Project Closed</button></div>`:''}
+      <div class="ch">
+        <span class="ct">Project Closure Checklist</span>
+        <span id="close-prog" style="font-size:.7rem;color:var(--text3);font-weight:600">—</span>
+      </div>
+      <div class="cb">
+        ${p.status!=='closed'?`<div class="vban vban-warn" id="close-enforce-banner">
+          <span class="vban-ico">⚠</span>
+          <span><strong>Enforcement:</strong> All ${total} items must be marked complete before the project can be formally closed.</span>
+        </div>`:''}
+        ${items.map(i=>`<div class="fchk close-item" style="padding:6px 0;border-bottom:1px solid var(--border)">
+          <input type="checkbox" id="cl-${i.key}" data-key="${i.key}" style="accent-color:var(--green)"
+            ${i.auto||p.status==='closed'?'checked':''}
+            onchange="updateCloseProgress(${total})">
+          <label for="cl-${i.key}" style="font-size:.78rem;flex:1">${i.label}${i.auto?` <span class="badge bg-teal" style="font-size:.55rem;padding:1px 5px">Auto-detected</span>`:''}</label>
+        </div>`).join('')}
+        ${canDo(['pmo','project_sponsor'])&&p.status!=='closed'?`<div style="margin-top:13px;display:flex;align-items:center;gap:10px">
+          <button class="btn btn-success btn-sm" id="close-proj-btn" onclick="closeProj('${p.$id}')" disabled style="opacity:.4;cursor:not-allowed">
+            ✓ Mark Project Closed
+          </button>
+          <span id="close-hint" style="font-size:.7rem;color:var(--amber);font-weight:600">Complete all ${total} checklist items to unlock</span>
+        </div>`:''}
         ${p.status==='closed'?`<div style="margin-top:11px"><span class="badge bg-green" style="font-size:.76rem;padding:5px 11px">✓ Project Formally Closed</span></div>`:''}
       </div>
     </div>
@@ -2897,7 +3212,30 @@ async function tClose(p,el){
       <td style="font-size:.7rem">${esc(l.submitted_by_name||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="te">No lessons learned yet</td></tr>'}
     </tbody></table></div>
   </div>`;
+  // Init progress counter
+  setTimeout(()=>updateCloseProgress(total),50);
 }
+
+function updateCloseProgress(total){
+  const checked=document.querySelectorAll('.close-item input[type=checkbox]:checked').length;
+  const prog=$('close-prog');
+  const btn=$('close-proj-btn');
+  const hint=$('close-hint');
+  const banner=$('close-enforce-banner');
+  if(prog) prog.textContent=`${checked} / ${total} complete`;
+  if(btn){
+    const allDone=checked>=total;
+    btn.disabled=!allDone;
+    btn.style.opacity=allDone?'1':'0.4';
+    btn.style.cursor=allDone?'pointer':'not-allowed';
+    if(hint){
+      hint.textContent=allDone?'All items complete — ready to close':'Complete all '+total+' items to unlock';
+      hint.style.color=allDone?'var(--green)':'var(--amber)';
+    }
+    if(banner) banner.style.display=allDone?'none':'';
+  }
+}
+
 
 async function saveSIT(pid, showToast=false){
   const status=$('sit-st')?.value||'pending';
@@ -3632,20 +3970,77 @@ async function deleteProject(id, name){
 
 async function closeProj(id){
   if(!canDo(['pmo','project_sponsor'])){toast('Insufficient permission','error');return;}
+  // Enforce checklist
+  const checked=document.querySelectorAll('.close-item input[type=checkbox]:checked').length;
+  const total=document.querySelectorAll('.close-item input[type=checkbox]').length;
+  if(checked<total){toast(`Complete all ${total} checklist items before closing (${checked}/${total} done)`,'error');return;}
   if(!confirm('Formally close this project? This creates an immutable closure record.'))return;
   await updateDoc('projects',id,{status:'closed',actual_end_date:new Date().toISOString().split('T')[0]});
   await auditLog('PROJECT_CLOSED','project',id,`Formally closed by ${S.profile.full_name}`,id);
   toast('Project closed. Recorded in audit log.','success');
   if(S.proj){S.proj.status='closed';renderTab(S.ptab,S.proj);}
 }
-async function lockBase(pid){
+
+function lockBase(pid){
   if(!canDo(['pmo'])){toast('PMO only','error');return;}
-  if(!confirm('Lock baseline? All future deviations will require an approved Change Request.'))return;
-  await updateDoc('projects',pid,{baseline_locked:true});
-  await createDoc('baselines',{project_id:pid,baseline_type:'performance_measurement',version:'1.0',description:'Initial performance measurement baseline',locked_at:new Date().toISOString(),locked_by:S.profile.$id,is_active:true});
-  await auditLog('BASELINE_LOCKED','project',pid,`Baseline locked by ${S.profile.full_name}`,pid);
-  toast('Baseline locked!','success');if(S.proj){S.proj.baseline_locked=true;renderTab(S.ptab,S.proj);}
+  om('Baseline Approval',`
+  <div class="vban vban-warn" style="margin-bottom:13px">
+    <span class="vban-ico">🔒</span>
+    <span><strong>Locking the baseline</strong> sets the performance measurement reference. All future cost, schedule, or scope changes will require an approved Change Request.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:13px;font-size:.78rem">
+    <div style="background:var(--bg);border-radius:8px;padding:10px;border:1px solid var(--border)">
+      <div style="font-size:.63rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Approval Workflow</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">✓</span><span style="font-size:.74rem">PM — Schedule &amp; Cost Plan ready</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">→</span><span style="font-size:.74rem">PMO Review (current step)</span></div>
+      <div style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:50%;background:var(--border);color:var(--text3);font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">○</span><span style="font-size:.74rem;color:var(--text3)">Sponsor Sign-off</span></div>
+    </div>
+    <div style="background:var(--bg);border-radius:8px;padding:10px;border:1px solid var(--border)">
+      <div style="font-size:.63rem;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Reviewer</div>
+      <div style="font-size:.82rem;font-weight:600">${esc(S.profile?.full_name||'—')}</div>
+      <div style="font-size:.71rem;color:var(--text3)">${esc(S.profile?.role||'—')}</div>
+      <div style="font-size:.68rem;color:var(--text3);margin-top:4px">${new Date().toLocaleDateString('en-SG',{day:'2-digit',month:'long',year:'numeric'})}</div>
+    </div>
+  </div>
+  <div class="fg">
+    <label>Review Comments <span style="font-size:.68rem;color:var(--text3)">(required for both approval and rejection)</span></label>
+    <textarea id="bl-cmt" class="bl-cmtbox" placeholder="Enter your review notes, e.g. confirmed schedule is aligned with resource availability and budget…" required></textarea>
+  </div>
+  <div style="background:var(--red-bg);border:1px solid #FCA5A5;border-radius:6px;padding:8px 12px;font-size:.72rem;color:#991B1B;margin-top:6px" id="bl-err" style="display:none"></div>`,
+  `<button class="btn btn-secondary" onclick="cm()">Cancel</button>
+   <button class="btn btn-danger btn-sm" onclick="rejectBase('${pid}')">✕ Reject</button>
+   <button class="btn btn-success" onclick="approveBase('${pid}')">✓ Approve & Lock Baseline</button>`);
 }
+
+async function approveBase(pid){
+  const cmt=$('bl-cmt')?.value?.trim();
+  const errEl=$('bl-err');
+  if(!cmt){
+    if(errEl){errEl.textContent='Review comments are required before approving.';errEl.style.display='block';}
+    toast('Add review comments before approving','error');return;
+  }
+  try{
+    await updateDoc('projects',pid,{baseline_locked:true,baseline_approved_by:S.profile.$id,baseline_approved_at:new Date().toISOString(),baseline_comments:cmt});
+    await createDoc('baselines',{project_id:pid,baseline_type:'performance_measurement',version:'1.0',description:'Initial performance measurement baseline — '+cmt,locked_at:new Date().toISOString(),locked_by:S.profile.$id,is_active:true});
+    await auditLog('BASELINE_APPROVED','project',pid,`Baseline approved by ${S.profile.full_name}: ${cmt}`,pid);
+    toast('Baseline approved and locked!','success');cm();
+    if(S.proj){S.proj.baseline_locked=true;renderTab(S.ptab,S.proj);}
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
+async function rejectBase(pid){
+  const cmt=$('bl-cmt')?.value?.trim();
+  const errEl=$('bl-err');
+  if(!cmt){
+    if(errEl){errEl.textContent='Review comments are required to explain the rejection.';errEl.style.display='block';}
+    toast('Add rejection comments','error');return;
+  }
+  try{
+    await auditLog('BASELINE_REJECTED','project',pid,`Baseline rejected by ${S.profile.full_name}: ${cmt}`,pid);
+    toast('Baseline rejected. Comments recorded in audit log.','info');cm();
+  }catch(e){toast('Error: '+e.message,'error');}
+}
+
 
 async function editProjModal(id){
   const p=await getDoc('projects',id);
@@ -3730,14 +4125,18 @@ function openCharterModal(pid, artId, art){
   const rskRow= (r=[])  => `<div class="dyn-row"><input value="${esc(r[0]||'')}" placeholder="Risk description" style="flex:2"><select class="w120"><option ${r[1]==='Technical Risk'?'selected':''}>Technical Risk</option><option ${r[1]==='Schedule Risk'?'selected':''}>Schedule Risk</option><option ${r[1]==='User Adoption Risk'?'selected':''}>User Adoption Risk</option><option ${r[1]==='Resource Risk'?'selected':''}>Resource Risk</option><option ${r[1]==='Regulatory Risk'?'selected':''}>Regulatory Risk</option></select><select class="w80"><option ${r[2]==='low'?'selected':''}value="low">Low</option><option ${r[2]==='medium'||!r[2]?'selected':''}value="medium">Medium</option><option ${r[2]==='high'?'selected':''}value="high">High</option><option ${r[2]==='critical'?'selected':''}value="critical">Critical</option></select><input value="${esc(r[3]||'')}" placeholder="Mitigation plan" class="w160"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;
 
   om('Project Charter — Project Description',`
-  <div class="ctabs">
-    <div class="ctab active" onclick="swCTab(this,'ch1')">Scope</div>
-    <div class="ctab" onclick="swCTab(this,'ch2')">Equipment</div>
-    <div class="ctab" onclick="swCTab(this,'ch3')">Deliverables</div>
-    <div class="ctab" onclick="swCTab(this,'ch4')">Assumptions</div>
-    <div class="ctab" onclick="swCTab(this,'ch5')">Constraints</div>
-    <div class="ctab" onclick="swCTab(this,'ch6')">Risks</div>
-    <div class="ctab" onclick="swCTab(this,'ch7')">Project Team</div>
+  <div class="vban vban-warn" style="margin-bottom:10px">
+    <span class="vban-ico">💡</span>
+    <span>Navigate through <strong>all 7 sections</strong> before saving. Sections turn green <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);vertical-align:middle"></span> once visited.</span>
+  </div>
+  <div class="ctabs" id="charter-tabs">
+    <div class="ctab active" onclick="swCTab(this,'ch1');markCharterTab(this)">Scope<span class="ctab-dot"></span></div>
+    <div class="ctab" onclick="swCTab(this,'ch2');markCharterTab(this)">Equipment<span class="ctab-dot"></span></div>
+    <div class="ctab" onclick="swCTab(this,'ch3');markCharterTab(this)">Deliverables<span class="ctab-dot"></span></div>
+    <div class="ctab" onclick="swCTab(this,'ch4');markCharterTab(this)">Assumptions<span class="ctab-dot"></span></div>
+    <div class="ctab" onclick="swCTab(this,'ch5');markCharterTab(this)">Constraints<span class="ctab-dot"></span></div>
+    <div class="ctab" onclick="swCTab(this,'ch6');markCharterTab(this)">Risks<span class="ctab-dot"></span></div>
+    <div class="ctab" onclick="swCTab(this,'ch7');markCharterTab(this)">Project Team<span class="ctab-dot"></span></div>
   </div>
 
   <!-- SCOPE -->
