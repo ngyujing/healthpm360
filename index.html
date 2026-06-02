@@ -369,6 +369,26 @@ button,a,select,input{touch-action:manipulation}
 .sg-pend{color:var(--amber);font-weight:600}
 .sg-upload-btn{background:var(--blue-light);color:var(--blue);border:none;border-radius:5px;padding:4px 9px;font-size:.68rem;font-weight:600;cursor:pointer}
 </style>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.location.reload();
+          }
+        });
+      });
+    });
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; window.location.reload(); }
+    });
+  });
+}
+</script>
 </head>
 <body>
 
